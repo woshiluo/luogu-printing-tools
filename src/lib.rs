@@ -107,13 +107,14 @@ pub fn get_board() -> String {
 impl CookiesList {
     pub fn get_cookie(&self) -> String {
         let mut list = self.cookies.lock().unwrap();
-        let cur_cookie = list.pop_front().unwrap();
+        let mut cur_cookie = list.pop_front().unwrap();
         let res = cur_cookie.cookies.clone();
         while std::time::Instant::now() - cur_cookie.last_time
             <= std::time::Duration::from_secs(WAIT_TIME)
         {
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
+        cur_cookie.last_time = std::time::Instant::now();
         list.push_back(cur_cookie);
         res
     }
@@ -163,7 +164,7 @@ impl PaintBoard {
                     wait_check.push_back((back.clone(), std::time::Instant::now()));
                     return Some(back);
                 } else {
-                    queue.push_back(back);
+                    queue.push_front(back);
                 }
             }
         }
