@@ -1,12 +1,14 @@
 use draw_script::cookies::{Cookies, CookiesList, RawCookies};
 use draw_script::node::NodeOpt;
 use draw_script::paintboard::PaintBoard;
+use draw_script::Config;
 use draw_script::ScriptError;
 
 use std::collections::VecDeque;
+use std::process;
 use std::sync::{Arc, Mutex};
 
-fn get_cookie_from_dir<T>(dir: T) -> Result<VecDeque<Cookies>, ScriptError>
+fn get_cookie_from_dir<T>(dir: &T) -> Result<VecDeque<Cookies>, ScriptError>
 where
     T: AsRef<std::path::Path>,
 {
@@ -23,7 +25,7 @@ where
     Ok(queue)
 }
 
-fn get_node<T>(file: T) -> Result<VecDeque<NodeOpt>, ScriptError>
+fn get_node<T>(file: &T) -> Result<VecDeque<NodeOpt>, ScriptError>
 where
     T: AsRef<std::path::Path>,
 {
@@ -41,13 +43,21 @@ where
 
 fn main() {
     pretty_env_logger::init();
+    let config = Arc::new(
+        Config::new("config.toml".to_string()).unwrap_or_else(|_err| {
+            eprintln!("Error parsing the config file!");
+            process::exit(1);
+        }),
+    );
     let cookies_list = CookiesList {
-        cookies: Arc::from(Mutex::from(get_cookie_from_dir("/home/user/data").unwrap())),
+        cookies: Arc::from(Mutex::from(
+            get_cookie_from_dir(&config.cookie_dir).unwrap(),
+        )),
     };
     let paint_board = PaintBoard {
         color: Arc::from(Mutex::from(vec![vec![1; 600]; 1000])),
-        gol_color: Arc::from(Mutex::from(get_node("/opt/cp_editor").unwrap())),
+        gol_color: Arc::from(Mutex::from(get_node(&config.node_file).unwrap())),
         wait_check: Arc::from(Mutex::from(VecDeque::new())),
     };
-    paint_board.start_daemon(Arc::from(cookies_list));
+    paint_board.start_daemon(Arc::from(cookies_list), Arc::clone(&config));
 }

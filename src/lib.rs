@@ -2,10 +2,27 @@ pub mod cookies;
 pub mod node;
 pub mod paintboard;
 
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
+use std::error::Error;
+use std::fs;
+use toml;
 
-static BOARD_ADDR: &str = "https://www.luogu.com.cn";
-static WEBSOCKET_ADDR: &str = "wss://ws.luogu.com.cn/ws";
+#[derive(Serialize, Deserialize)]
+pub struct Config {
+    pub board_addr: String,
+    pub websocket_addr: String,
+    pub cookie_dir: String,
+    pub node_file: String,
+    pub wait_time: u64,
+}
+
+impl Config {
+    pub fn new(filename: String) -> Result<Config, Box<dyn Error>> {
+        let config: Config = toml::from_str(&fs::read_to_string(&filename)?)?;
+        Ok(config)
+    }
+}
 
 pub enum ScriptError {
     FailedReadFile(std::io::Error),

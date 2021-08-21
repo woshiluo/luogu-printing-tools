@@ -1,5 +1,3 @@
-use crate::BOARD_ADDR;
-
 use serde::{Deserialize, Serialize};
 
 use reqwest::header;
@@ -21,12 +19,13 @@ pub struct Status {
 }
 
 impl NodeOpt {
-    pub fn update(&self, cookies: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update(
+        &self,
+        cookies: String,
+        board_addr: &String,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::REFERER,
-            "https://www.luogu.com.cn/paintBoard".parse().unwrap(),
-        );
+        headers.insert(header::REFERER, board_addr.parse().unwrap());
         headers.insert(header::COOKIE, cookies.parse().unwrap());
         let client = reqwest::blocking::Client::new();
         let mut params = std::collections::HashMap::new();
@@ -34,7 +33,7 @@ impl NodeOpt {
         params.insert("y", self.y.to_string());
         params.insert("color", self.color.to_string());
         let rep = client
-            .post(&format!("{}/paintBoard/paint", BOARD_ADDR))
+            .post(&format!("{}/paint", board_addr))
             .form(&params)
             .headers(headers)
             .send()
