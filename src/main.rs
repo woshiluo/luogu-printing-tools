@@ -1,40 +1,52 @@
-use draw_script::{Cookies, CookiesList, NodeOpt, PaintBoard, RawCookies};
+use draw_script::cookies::{Cookies, CookiesList, RawCookies};
+use draw_script::node::NodeOpt;
+use draw_script::paintboard::PaintBoard;
+use draw_script::ScriptError;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-static COLOR: [usize; 18] = [
-    28, 28, 1, 1, 13, 13, 8, 8, 26, 26, 22, 22, 10, 10, 11, 11, 17, 17,
-];
-
-fn main() {
-    pretty_env_logger::init();
+fn get_cookie_from_dir<T>(dir: T) -> Result<VecDeque<Cookies>, ScriptError>
+where
+    T: AsRef<std::path::Path>,
+{
     let mut queue = VecDeque::new();
-    let files = std::fs::read_dir("/home/woshiluo/data").unwrap();
-    for file in files {
-        let file_content = std::fs::read_to_string(file.unwrap().path()).unwrap();
-        let cookies: RawCookies = serde_json::from_str(&file_content).unwrap();
+    let cookies = std::fs::read_dir(dir.as_ref())?;
+    for cookie in cookies {
+        let content = std::fs::read_to_string(cookie?.path())?;
+        let cookies: RawCookies = serde_json::from_str(&content)?;
         queue.push_back(Cookies {
             cookies: cookies.cookie,
             last_time: std::time::Instant::now(),
         });
     }
-    let cookies_list = CookiesList {
-        cookies: Arc::from(Mutex::from(queue)),
-    };
+    Ok(queue)
+}
+
+fn get_node<T>(file: T) -> Result<VecDeque<NodeOpt>, ScriptError>
+where
+    T: AsRef<std::path::Path>,
+{
     let mut queue = VecDeque::new();
-    for i in 0..18 {
-        for j in 0..600 {
-            queue.push_back(NodeOpt {
-                x: i,
-                y: j,
-                color: COLOR[i],
-            });
-        }
+    let dot_draw: Vec<[usize; 3]> = serde_json::from_str(&std::fs::read_to_string(file.as_ref())?)?;
+    for node in dot_draw {
+        queue.push_back(NodeOpt {
+            x: node[0],
+            y: node[1],
+            color: node[2],
+        });
     }
+    Ok(queue)
+}
+
+fn main() {
+    pretty_env_logger::init();
+    let cookies_list = CookiesList {
+        cookies: Arc::from(Mutex::from(get_cookie_from_dir("/home/user/data").unwrap())),
+    };
     let paint_board = PaintBoard {
         color: Arc::from(Mutex::from(vec![vec![1; 600]; 1000])),
-        gol_color: Arc::from(Mutex::from(queue)),
+        gol_color: Arc::from(Mutex::from(get_node("/opt/cp_editor").unwrap())),
         wait_check: Arc::from(Mutex::from(VecDeque::new())),
     };
     paint_board.start_daemon(Arc::from(cookies_list));
