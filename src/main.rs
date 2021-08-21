@@ -43,7 +43,7 @@ where
 
 fn main() {
     pretty_env_logger::init();
-    let config = Config::new("config.json".to_string()).unwarp_or_else(|_err| {
+    let config = Config::new("config.toml".to_string()).unwrap_or_else(|_err| {
         eprintln!("Error parsing the config file!");
         process::exit(1);
     });

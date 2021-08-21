@@ -3,10 +3,10 @@ pub mod node;
 pub mod paintboard;
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fs;
+use toml;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -19,7 +19,7 @@ pub struct Config {
 
 impl Config {
     pub fn new(filename: String) -> Result<Config, Box<dyn Error>> {
-        let config: Config = serde_json::from_str(&fs::read_to_string(&filename)?)?;
+        let config: Config = toml::from_str(&fs::read_to_string(&filename)?)?;
         Ok(config)
     }
 }
