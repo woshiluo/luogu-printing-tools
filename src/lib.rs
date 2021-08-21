@@ -47,6 +47,7 @@ impl std::fmt::Debug for ScriptError {
     }
 }
 
+// TODO: 抽象
 pub fn to_32(cur: usize) -> char {
     let cur = u8::try_from(cur).unwrap();
     if cur <= 9 {
