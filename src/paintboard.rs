@@ -96,7 +96,7 @@ impl PaintBoard {
         }
         None
     }
-    pub fn start_daemon(self, cookies_list: Arc<CookiesList>, config: &'static Config) {
+    pub fn start_daemon(self, cookies_list: Arc<CookiesList>, config: Arc<Config>) {
         //use tokio::runtime::Runtime;
         let board = Arc::from(self);
 
@@ -104,6 +104,7 @@ impl PaintBoard {
         let handle_board;
         {
             let board = board.clone();
+            let config = Arc::clone(&config);
             handle_ws = std::thread::spawn(move || loop {
                 if let Err(err) = board.websocket_daemon(&config.websocket_addr) {
                     log::error!("{:?}", err);
@@ -112,6 +113,7 @@ impl PaintBoard {
         }
         {
             let board = board.clone();
+            let config = Arc::clone(&config);
             handle_board = std::thread::spawn(move || {
                 log::info!("Start auto refresh daemon");
                 loop {
@@ -125,6 +127,7 @@ impl PaintBoard {
         for i in 0..4 {
             let board = board.clone();
             let cookies_list = cookies_list.clone();
+            let config = Arc::clone(&config);
             std::thread::spawn(move || {
                 log::info!("Thread {} started", i);
                 loop {

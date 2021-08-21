@@ -43,10 +43,12 @@ where
 
 fn main() {
     pretty_env_logger::init();
-    let config = Config::new("config.toml".to_string()).unwrap_or_else(|_err| {
-        eprintln!("Error parsing the config file!");
-        process::exit(1);
-    });
+    let config = Arc::new(
+        Config::new("config.toml".to_string()).unwrap_or_else(|_err| {
+            eprintln!("Error parsing the config file!");
+            process::exit(1);
+        }),
+    );
     let cookies_list = CookiesList {
         cookies: Arc::from(Mutex::from(
             get_cookie_from_dir(&config.cookie_dir).unwrap(),
@@ -57,5 +59,5 @@ fn main() {
         gol_color: Arc::from(Mutex::from(get_node(&config.node_dir).unwrap())),
         wait_check: Arc::from(Mutex::from(VecDeque::new())),
     };
-    paint_board.start_daemon(Arc::from(cookies_list), &config);
+    paint_board.start_daemon(Arc::from(cookies_list), Arc::clone(&config));
 }
