@@ -11,8 +11,6 @@ use std::sync::{Arc, Mutex};
 use reqwest::header;
 use reqwest::header::HeaderMap;
 
-static WAIT_TIME: u64 = 30;
-
 /// 画板
 pub struct PaintBoard {
     pub color: Arc<Mutex<Vec<Vec<usize>>>>,
@@ -21,7 +19,7 @@ pub struct PaintBoard {
 }
 
 pub fn get_board(board_addr: &str) -> String {
-/// 获取画板状态
+    /// 获取画板状态
     let mut headers = HeaderMap::new();
     headers.insert(
         header::REFERER,
@@ -154,7 +152,7 @@ impl PaintBoard {
         handle_board.join().unwrap();
         handle_ws.join().unwrap();
     }
-    fn websocket_daemon(&self, websocket_addr: &String) -> Result<(), ScriptError> {
+    fn websocket_daemon(&self, websocket_addr: &str) -> Result<(), ScriptError> {
         use websocket::{ClientBuilder, Message};
         let mut client = ClientBuilder::new(websocket_addr).unwrap();
         let mut client = client.connect_secure(None)?;
@@ -177,7 +175,7 @@ impl PaintBoard {
         }
         Ok(())
     }
-    fn refresh_board(&self, board_addr: &String) -> Result<(), ScriptError> {
+    fn refresh_board(&self, board_addr: &str) -> Result<(), ScriptError> {
         let raw_board = get_board(&board_addr);
         let mut color = self.color.lock().unwrap();
         for (i, line) in raw_board.lines().enumerate() {
