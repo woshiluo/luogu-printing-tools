@@ -11,6 +11,9 @@ use std::sync::{Arc, Mutex};
 use reqwest::header;
 use reqwest::header::HeaderMap;
 
+static WAIT_TIME: u64 = 30;
+
+/// 画板
 pub struct PaintBoard {
     pub color: Arc<Mutex<Vec<Vec<usize>>>>,
     pub gol_color: Arc<Mutex<VecDeque<NodeOpt>>>,
@@ -18,6 +21,7 @@ pub struct PaintBoard {
 }
 
 pub fn get_board(board_addr: &str) -> String {
+/// 获取画板状态
     let mut headers = HeaderMap::new();
     headers.insert(
         header::REFERER,
@@ -47,7 +51,9 @@ impl CookiesList {
     }
 }
 
+// TODO: Refactor
 impl PaintBoard {
+    /// 测试指定点颜色
     pub fn check(&self, opt: &NodeOpt) -> bool {
         self.color.lock().unwrap()[opt.x][opt.y] == opt.color
     }

@@ -4,6 +4,8 @@ use reqwest::header;
 use reqwest::header::HeaderMap;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+/// 单个点的信息
+/// (x,y) = color
 pub struct NodeOpt {
     pub x: usize,
     pub y: usize,
@@ -11,6 +13,7 @@ pub struct NodeOpt {
 }
 
 #[derive(Deserialize)]
+/// Luogu 返回的状态
 pub struct Status {
     status: u32,
 }
