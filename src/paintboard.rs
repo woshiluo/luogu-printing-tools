@@ -17,7 +17,7 @@ pub struct PaintBoard {
     pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
 }
 
-pub fn get_board(board_addr: &String) -> String {
+pub fn get_board(board_addr: &str) -> String {
     let mut headers = HeaderMap::new();
     headers.insert(
         header::REFERER,
@@ -32,12 +32,12 @@ pub fn get_board(board_addr: &String) -> String {
 }
 
 impl CookiesList {
-    pub fn get_cookie(&self, wait_time: &u64) -> String {
+    pub fn get_cookie(&self, wait_time: u64) -> String {
         let mut list = self.cookies.lock().unwrap();
         let mut cur_cookie = list.pop_front().unwrap();
         let res = cur_cookie.cookies.clone();
         while std::time::Instant::now() - cur_cookie.last_time
-            <= std::time::Duration::from_secs(*wait_time)
+            <= std::time::Duration::from_secs(wait_time)
         {
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
@@ -131,7 +131,7 @@ impl PaintBoard {
             std::thread::spawn(move || {
                 log::info!("Thread {} started", i);
                 loop {
-                    let cookies = cookies_list.get_cookie(&config.wait_time);
+                    let cookies = cookies_list.get_cookie(config.wait_time);
                     if let Some(opt) = board.get_update() {
                         log::info!("Thread {}: get work {:?}", i, opt);
                         if let Err(err) = opt.update(cookies, &config.board_addr) {

@@ -13,7 +13,7 @@ pub struct Config {
     pub board_addr: String,
     pub websocket_addr: String,
     pub cookie_dir: String,
-    pub node_dir: String,
+    pub node_file: String,
     pub wait_time: u64,
 }
 

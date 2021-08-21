@@ -56,7 +56,7 @@ fn main() {
     };
     let paint_board = PaintBoard {
         color: Arc::from(Mutex::from(vec![vec![1; 600]; 1000])),
-        gol_color: Arc::from(Mutex::from(get_node(&config.node_dir).unwrap())),
+        gol_color: Arc::from(Mutex::from(get_node(&config.node_file).unwrap())),
         wait_check: Arc::from(Mutex::from(VecDeque::new())),
     };
     paint_board.start_daemon(Arc::from(cookies_list), Arc::clone(&config));
