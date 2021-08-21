@@ -15,12 +15,14 @@ use reqwest::header::HeaderMap;
 
 static WAIT_TIME: u64 = 30;
 
+/// 画板
 pub struct PaintBoard {
     pub color: Arc<Mutex<Vec<Vec<usize>>>>,
     pub gol_color: Arc<Mutex<VecDeque<NodeOpt>>>,
     pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
 }
 
+/// 获取画板状态
 pub fn get_board() -> String {
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -51,7 +53,9 @@ impl CookiesList {
     }
 }
 
+// TODO: Refactor
 impl PaintBoard {
+    /// 测试指定点颜色
     pub fn check(&self, opt: &NodeOpt) -> bool {
         self.color.lock().unwrap()[opt.x][opt.y] == opt.color
     }
