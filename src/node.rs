@@ -25,8 +25,8 @@ impl NodeOpt {
         board_addr: &String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut headers = HeaderMap::new();
-        headers.insert(header::REFERER, board_addr.parse().unwrap());
-        headers.insert(header::COOKIE, cookies.parse().unwrap());
+        headers.insert(header::REFERER, board_addr.parse()?);
+        headers.insert(header::COOKIE, cookies.parse()?);
         let client = reqwest::blocking::Client::new();
         let mut params = std::collections::HashMap::new();
         params.insert("x", self.x.to_string());

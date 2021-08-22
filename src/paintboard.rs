@@ -21,15 +21,9 @@ pub struct PaintBoard {
 pub fn get_board(board_addr: &str) -> String {
     /// 获取画板状态
     let mut headers = HeaderMap::new();
-    headers.insert(
-        header::REFERER,
-        "https://www.luogu.com.cn/paintBoard".parse().unwrap(),
-    );
+    headers.insert(header::REFERER, board_addr.parse().unwrap());
     let client = reqwest::blocking::Client::new();
-    let rep = client
-        .get(&format!("{}/paintBoard/board", board_addr))
-        .send()
-        .unwrap();
+    let rep = client.get(&format!("{}/board", board_addr)).send().unwrap();
     rep.text().unwrap()
 }
 
