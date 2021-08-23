@@ -18,13 +18,25 @@ pub struct PaintBoard {
     pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
 }
 
-pub fn get_board(board_addr: &str) -> String {
+pub fn get_board(board_addr: &str) -> Option<String> {
     /// 获取画板状态
     let mut headers = HeaderMap::new();
     headers.insert(header::REFERER, board_addr.parse().unwrap());
     let client = reqwest::blocking::Client::new();
-    let rep = client.get(&format!("{}/board", board_addr)).send().unwrap();
-    rep.text().unwrap()
+    // try 3 times to send request
+    for i in 1..4 {
+        let rep = client.get(&format!("{}/board", board_addr)).send();
+        match rep {
+            Ok(res) => {
+                return Some(res.text().unwrap());
+            }
+            Err(_err) => {
+                log::warn!("Get board failed! {} retries remaining.", 3 - i);
+            }
+        }
+    }
+    log::error!("All retries to get board failed!");
+    None
 }
 
 impl CookiesList {
@@ -115,9 +127,7 @@ impl PaintBoard {
             handle_board = std::thread::spawn(move || {
                 log::info!("Start auto refresh daemon");
                 loop {
-                    if let Err(err) = board.refresh_board(&config.board_addr) {
-                        log::error!("Failed refresh board: {:?}", err);
-                    }
+                    board.refresh_board(&config.board_addr);
                     std::thread::sleep(std::time::Duration::from_secs(120));
                 }
             });
@@ -169,14 +179,22 @@ impl PaintBoard {
         }
         Ok(())
     }
-    fn refresh_board(&self, board_addr: &str) -> Result<(), ScriptError> {
+    fn refresh_board(&self, board_addr: &str) {
         let raw_board = get_board(&board_addr);
-        let mut color = self.color.lock().unwrap();
-        for (i, line) in raw_board.lines().enumerate() {
-            for (j, chr) in line.chars().enumerate() {
-                color[i][j] = from_32(chr);
+        match raw_board {
+            None => {
+                log::error!("Failed to refresh board!");
+                ()
+            } // just log and skip if the process failed to get board from remote server
+            Some(raw_board) => {
+                let mut color = self.color.lock().unwrap();
+                for (i, line) in raw_board.lines().enumerate() {
+                    for (j, chr) in line.chars().enumerate() {
+                        color[i][j] = from_32(chr);
+                    }
+                }
+                ()
             }
         }
-        Ok(())
     }
 }

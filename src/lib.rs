@@ -7,6 +7,7 @@ use std::convert::TryFrom;
 use std::error::Error;
 use std::fs;
 use toml;
+use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -17,9 +18,51 @@ pub struct Config {
     pub wait_time: u64,
 }
 
+pub enum InvalidUrlError {
+    InvalidHTTPError,
+    InvalidWSError,
+}
+
+impl std::fmt::Display for InvalidUrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            InvalidUrlError::InvalidHTTPError => {
+                write!(f, "Invalid HTTP URL!")
+            }
+            InvalidUrlError::InvalidWSError => {
+                write!(f, "Invalid WebSocket URL!")
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for InvalidUrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            InvalidUrlError::InvalidHTTPError => {
+                write!(f, "Invalid HTTP URL!")
+            }
+            InvalidUrlError::InvalidWSError => {
+                write!(f, "Invalid WebSocket URL!")
+            }
+        }
+    }
+}
+
+impl Error for InvalidUrlError {}
+
 impl Config {
     pub fn new(filename: String) -> Result<Config, Box<dyn Error>> {
         let config: Config = toml::from_str(&fs::read_to_string(&filename)?)?;
+        // check if the board_addr and websocket_addr are valid
+        let board_addr = Url::parse(&config.board_addr)?;
+        let websocket_addr = Url::parse(&config.websocket_addr)?;
+        if board_addr.scheme() != "http" || board_addr.scheme() != "https" {
+            return Err(Box::new(InvalidUrlError::InvalidHTTPError));
+        }
+        if websocket_addr.scheme() != "ws" || websocket_addr.scheme() != "wss" {
+            return Err(Box::new(InvalidUrlError::InvalidWSError));
+        }
         Ok(config)
     }
 }
