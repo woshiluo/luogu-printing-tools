@@ -57,10 +57,10 @@ impl Config {
         // check if the board_addr and websocket_addr are valid
         let board_addr = Url::parse(&config.board_addr)?;
         let websocket_addr = Url::parse(&config.websocket_addr)?;
-        if board_addr.scheme() != "http" || board_addr.scheme() != "https" {
+        if board_addr.scheme() != "http" && board_addr.scheme() != "https" {
             return Err(Box::new(InvalidUrlError::InvalidHTTPError));
         }
-        if websocket_addr.scheme() != "ws" || websocket_addr.scheme() != "wss" {
+        if websocket_addr.scheme() != "ws" && websocket_addr.scheme() != "wss" {
             return Err(Box::new(InvalidUrlError::InvalidWSError));
         }
         Ok(config)
