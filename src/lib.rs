@@ -9,9 +9,17 @@ use std::convert::TryFrom;
 
 pub enum ScriptError {
     FailedReadFile(std::io::Error),
-    FailedReadConfig(toml::de::Error),
-    FailedParseString(serde_json::Error),
+    FailedParseToml(toml::de::Error),
+    FailedParseJson(serde_json::Error),
     FailedConnecntWebsocket(websocket::WebSocketError),
+    FailedParseUrl(url::ParseError),
+    FailedProcessRequest(reqwest::Error),
+    UnexpectedUrl(UrlError),
+}
+
+pub enum UrlError {
+    InvalidHTTPUrl,
+    InvalidWSUrl,
 }
 
 impl From<std::io::Error> for ScriptError {
@@ -22,7 +30,7 @@ impl From<std::io::Error> for ScriptError {
 
 impl From<serde_json::Error> for ScriptError {
     fn from(error: serde_json::Error) -> Self {
-        ScriptError::FailedParseString(error)
+        ScriptError::FailedParseJson(error)
     }
 }
 
@@ -34,25 +42,51 @@ impl From<websocket::WebSocketError> for ScriptError {
 
 impl From<toml::de::Error> for ScriptError {
     fn from(error: toml::de::Error) -> Self {
-        ScriptError::FailedReadConfig(error)
+        ScriptError::FailedParseToml(error)
+    }
+}
+
+impl From<url::ParseError> for ScriptError {
+    fn from(error: url::ParseError) -> Self {
+        ScriptError::FailedParseUrl(error)
+    }
+}
+
+impl From<reqwest::Error> for ScriptError {
+    fn from(error: reqwest::Error) -> Self {
+        ScriptError::FailedProcessRequest(error)
+    }
+}
+
+impl std::fmt::Debug for UrlError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            UrlError::InvalidHTTPUrl => {
+                write!(formatter, "Invalid HTTP URL!")
+            }
+            UrlError::InvalidWSUrl => {
+                write!(formatter, "Invalid WebSocket URL!")
+            }
+        }
+    }
+}
+
+impl From<UrlError> for ScriptError {
+    fn from(error: UrlError) -> Self {
+        ScriptError::UnexpectedUrl(error)
     }
 }
 
 impl std::fmt::Debug for ScriptError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ScriptError::FailedReadFile(err) => {
-                formatter.write_str(&format!("无法访问文件: {:?}", err))
-            }
-            ScriptError::FailedReadConfig(err) => {
-                formatter.write_str(&format!("读取配置文件失败: {:?}", err))
-            }
-            ScriptError::FailedParseString(err) => {
-                formatter.write_str(&format!("无法解析文件: {:?}", err))
-            }
-            ScriptError::FailedConnecntWebsocket(err) => {
-                formatter.write_str(&format!("无法建立 Websocket 链接: {:?}", err))
-            }
+            ScriptError::FailedReadFile(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedParseToml(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedParseJson(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedConnecntWebsocket(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedParseUrl(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedProcessRequest(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::UnexpectedUrl(err) => formatter.write_str(&format!("{:?}", err)),
         }
     }
 }
