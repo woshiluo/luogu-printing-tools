@@ -1,3 +1,4 @@
+use super::Config;
 use serde::{Deserialize, Serialize};
 
 use reqwest::header;
@@ -22,18 +23,18 @@ impl NodeOpt {
     pub fn update(
         &self,
         cookies: String,
-        board_addr: &String,
+        config: &Config,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut headers = HeaderMap::new();
-        headers.insert(header::REFERER, board_addr.parse()?);
-        headers.insert(header::COOKIE, cookies.parse()?);
+        headers.insert(header::REFERER, config.board_addr.parse().unwrap());
+        headers.insert(header::COOKIE, cookies.parse().unwrap());
         let client = reqwest::blocking::Client::new();
         let mut params = std::collections::HashMap::new();
         params.insert("x", self.x.to_string());
         params.insert("y", self.y.to_string());
         params.insert("color", self.color.to_string());
         let rep = client
-            .post(&format!("{}/paint", board_addr))
+            .post(&format!("{}/paint", config.board_addr))
             .form(&params)
             .headers(headers)
             .send()

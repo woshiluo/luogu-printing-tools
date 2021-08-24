@@ -18,14 +18,14 @@ pub struct PaintBoard {
     pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
 }
 
-pub fn get_board(board_addr: &str) -> Option<String> {
-    /// 获取画板状态
+/// 获取画板状态
+pub fn get_board(config: &Config) -> Option<String> {
     let mut headers = HeaderMap::new();
-    headers.insert(header::REFERER, board_addr.parse().unwrap());
+    headers.insert(header::REFERER, config.board_addr.parse().unwrap());
     let client = reqwest::blocking::Client::new();
     // try 3 times to send request
     for i in 1..4 {
-        let rep = client.get(&format!("{}/board", board_addr)).send();
+        let rep = client.get(&format!("{}/board", config.board_addr)).send();
         match rep {
             Ok(res) => {
                 return Some(res.text().unwrap());
@@ -116,7 +116,7 @@ impl PaintBoard {
             let board = board.clone();
             let config = Arc::clone(&config);
             handle_ws = std::thread::spawn(move || loop {
-                if let Err(err) = board.websocket_daemon(&config.websocket_addr) {
+                if let Err(err) = board.websocket_daemon(&config) {
                     log::error!("{:?}", err);
                 }
             });
@@ -127,7 +127,7 @@ impl PaintBoard {
             handle_board = std::thread::spawn(move || {
                 log::info!("Start auto refresh daemon");
                 loop {
-                    board.refresh_board(&config.board_addr);
+                    board.refresh_board(&config);
                     std::thread::sleep(std::time::Duration::from_secs(120));
                 }
             });
@@ -142,7 +142,7 @@ impl PaintBoard {
                     let cookies = cookies_list.get_cookie(config.wait_time);
                     if let Some(opt) = board.get_update() {
                         log::info!("Thread {}: get work {:?}", i, opt);
-                        if let Err(err) = opt.update(cookies, &config.board_addr) {
+                        if let Err(err) = opt.update(cookies, &config) {
                             log::error!("Failed paint: {:?}", err);
                         }
                     } else {
@@ -156,9 +156,9 @@ impl PaintBoard {
         handle_board.join().unwrap();
         handle_ws.join().unwrap();
     }
-    fn websocket_daemon(&self, websocket_addr: &str) -> Result<(), ScriptError> {
+    fn websocket_daemon(&self, config: &Config) -> Result<(), ScriptError> {
         use websocket::{ClientBuilder, Message};
-        let mut client = ClientBuilder::new(websocket_addr).unwrap();
+        let mut client = ClientBuilder::new(&config.websocket_addr).unwrap();
         let mut client = client.connect_secure(None)?;
         client.send_message(&Message::text(
             "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
@@ -179,8 +179,8 @@ impl PaintBoard {
         }
         Ok(())
     }
-    fn refresh_board(&self, board_addr: &str) {
-        let raw_board = get_board(&board_addr);
+    fn refresh_board(&self, config: &Config) {
+        let raw_board = get_board(config);
         match raw_board {
             None => {
                 log::error!("Failed to refresh board!");
