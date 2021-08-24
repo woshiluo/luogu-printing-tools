@@ -1,31 +1,15 @@
+pub mod config;
 pub mod cookies;
 pub mod node;
 pub mod paintboard;
 
-use serde::{Deserialize, Serialize};
+pub use self::config::*;
+
 use std::convert::TryFrom;
-use std::error::Error;
-use std::fs;
-use toml;
-
-#[derive(Serialize, Deserialize)]
-pub struct Config {
-    pub board_addr: String,
-    pub websocket_addr: String,
-    pub cookie_dir: String,
-    pub node_file: String,
-    pub wait_time: u64,
-}
-
-impl Config {
-    pub fn new(filename: String) -> Result<Config, Box<dyn Error>> {
-        let config: Config = toml::from_str(&fs::read_to_string(&filename)?)?;
-        Ok(config)
-    }
-}
 
 pub enum ScriptError {
     FailedReadFile(std::io::Error),
+    FailedReadConfig(toml::de::Error),
     FailedParseString(serde_json::Error),
     FailedConnecntWebsocket(websocket::WebSocketError),
 }
@@ -48,11 +32,20 @@ impl From<websocket::WebSocketError> for ScriptError {
     }
 }
 
+impl From<toml::de::Error> for ScriptError {
+    fn from(error: toml::de::Error) -> Self {
+        ScriptError::FailedReadConfig(error)
+    }
+}
+
 impl std::fmt::Debug for ScriptError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             ScriptError::FailedReadFile(err) => {
                 formatter.write_str(&format!("无法访问文件: {:?}", err))
+            }
+            ScriptError::FailedReadConfig(err) => {
+                formatter.write_str(&format!("读取配置文件失败: {:?}", err))
             }
             ScriptError::FailedParseString(err) => {
                 formatter.write_str(&format!("无法解析文件: {:?}", err))
