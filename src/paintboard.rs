@@ -18,8 +18,8 @@ pub struct PaintBoard {
     pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
 }
 
+/// 获取画板状态
 pub fn get_board(board_addr: &str) -> String {
-    /// 获取画板状态
     let mut headers = HeaderMap::new();
     headers.insert(
         header::REFERER,
