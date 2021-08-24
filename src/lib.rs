@@ -58,7 +58,7 @@ impl From<reqwest::Error> for ScriptError {
     }
 }
 
-impl std::fmt::Debug for UrlError {
+impl std::fmt::Display for UrlError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             UrlError::InvalidHTTPUrl => {
@@ -77,16 +77,16 @@ impl From<UrlError> for ScriptError {
     }
 }
 
-impl std::fmt::Debug for ScriptError {
+impl std::fmt::Display for ScriptError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ScriptError::FailedReadFile(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::FailedParseToml(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::FailedParseJson(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::FailedConnecntWebsocket(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::FailedParseUrl(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::FailedProcessRequest(err) => formatter.write_str(&format!("{:?}", err)),
-            ScriptError::UnexpectedUrl(err) => formatter.write_str(&format!("{:?}", err)),
+            ScriptError::FailedReadFile(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::FailedParseToml(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::FailedParseJson(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::FailedConnecntWebsocket(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::FailedParseUrl(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::FailedProcessRequest(err) => formatter.write_str(&format!("{}", err)),
+            ScriptError::UnexpectedUrl(err) => formatter.write_str(&format!("{}", err)),
         }
     }
 }

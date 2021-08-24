@@ -45,14 +45,14 @@ fn main() {
     pretty_env_logger::init();
     let config = Arc::new(
         Config::new("config.toml".to_string()).unwrap_or_else(|err| {
-            eprintln!("Error parsing the config file: {:?}", err);
+            eprintln!("Error parsing the config file: {}", err);
             process::exit(1);
         }),
     );
     let cookies_list = CookiesList {
         cookies: Arc::from(Mutex::from(
             get_cookie_from_dir(&config.cookie_dir).unwrap_or_else(|err| {
-                eprintln!("Error getting cookies: {:?}", err);
+                eprintln!("Error getting cookies: {}", err);
                 process::exit(1);
             }),
         )),
@@ -61,7 +61,7 @@ fn main() {
         color: Arc::from(Mutex::from(vec![vec![1; 600]; 1000])),
         gol_color: Arc::from(Mutex::from(get_node(&config.node_file).unwrap_or_else(
             |err| {
-                eprintln!("Error getting nodes: {:?}", err);
+                eprintln!("Error getting nodes: {}", err);
                 process::exit(1);
             },
         ))),

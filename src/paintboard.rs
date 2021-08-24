@@ -117,7 +117,7 @@ impl PaintBoard {
             let config = Arc::clone(&config);
             handle_ws = std::thread::spawn(move || loop {
                 if let Err(err) = board.websocket_daemon(&config) {
-                    log::error!("{:?}", err);
+                    log::error!("{}", err);
                 }
             });
         }
@@ -143,7 +143,7 @@ impl PaintBoard {
                     if let Some(opt) = board.get_update() {
                         log::info!("Thread {}: get work {:?}", i, opt);
                         if let Err(err) = opt.update(cookies, &config) {
-                            log::error!("Failed paint: {:?}", err);
+                            log::error!("Failed paint: {}", err);
                         }
                     } else {
                         log::info!("Thread {}: There is nothing to do", i);
