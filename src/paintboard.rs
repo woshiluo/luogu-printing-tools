@@ -19,18 +19,24 @@ pub struct PaintBoard {
 }
 
 /// 获取画板状态
-pub fn get_board(config: &Config) -> String {
+pub fn get_board(config: &Config) -> Option<String> {
     let mut headers = HeaderMap::new();
-    headers.insert(
-        header::REFERER,
-        "https://www.luogu.com.cn/paintBoard".parse().unwrap(),
-    );
+    headers.insert(header::REFERER, config.board_addr.parse().unwrap());
     let client = reqwest::blocking::Client::new();
-    let rep = client
-        .get(&format!("{}/paintBoard/board", config.board_addr))
-        .send()
-        .unwrap();
-    rep.text().unwrap()
+    // try 3 times to send request
+    for i in 1..4 {
+        let rep = client.get(&format!("{}/board", config.board_addr)).send();
+        match rep {
+            Ok(res) => {
+                return Some(res.text().unwrap());
+            }
+            Err(_err) => {
+                log::warn!("Get board failed! {} retries remaining.", 3 - i);
+            }
+        }
+    }
+    log::error!("All retries to get board failed!");
+    None
 }
 
 impl CookiesList {
@@ -111,7 +117,7 @@ impl PaintBoard {
             let config = Arc::clone(&config);
             handle_ws = std::thread::spawn(move || loop {
                 if let Err(err) = board.websocket_daemon(&config) {
-                    log::error!("{:?}", err);
+                    log::error!("{}", err);
                 }
             });
         }
@@ -121,9 +127,7 @@ impl PaintBoard {
             handle_board = std::thread::spawn(move || {
                 log::info!("Start auto refresh daemon");
                 loop {
-                    if let Err(err) = board.refresh_board(&config) {
-                        log::error!("Failed refresh board: {:?}", err);
-                    }
+                    board.refresh_board(&config);
                     std::thread::sleep(std::time::Duration::from_secs(120));
                 }
             });
@@ -139,7 +143,7 @@ impl PaintBoard {
                     if let Some(opt) = board.get_update() {
                         log::info!("Thread {}: get work {:?}", i, opt);
                         if let Err(err) = opt.update(cookies, &config) {
-                            log::error!("Failed paint: {:?}", err);
+                            log::error!("Failed paint: {}", err);
                         }
                     } else {
                         log::info!("Thread {}: There is nothing to do", i);
@@ -175,14 +179,22 @@ impl PaintBoard {
         }
         Ok(())
     }
-    fn refresh_board(&self, config: &Config) -> Result<(), ScriptError> {
+    fn refresh_board(&self, config: &Config) {
         let raw_board = get_board(config);
-        let mut color = self.color.lock().unwrap();
-        for (i, line) in raw_board.lines().enumerate() {
-            for (j, chr) in line.chars().enumerate() {
-                color[i][j] = from_32(chr);
+        match raw_board {
+            None => {
+                log::error!("Failed to refresh board!");
+                ()
+            } // just log and skip if the process failed to get board from remote server
+            Some(raw_board) => {
+                let mut color = self.color.lock().unwrap();
+                for (i, line) in raw_board.lines().enumerate() {
+                    for (j, chr) in line.chars().enumerate() {
+                        color[i][j] = from_32(chr);
+                    }
+                }
+                ()
             }
         }
-        Ok(())
     }
 }

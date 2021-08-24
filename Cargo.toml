@@ -17,6 +17,7 @@ rand = "0.8.0"
 
 reqwest = { version = "0.10", features = ["blocking", "json"] }
 websocket = "0.26.2"
+url = "2.2.2"
 
 log = "0.4.11"
 
