@@ -15,7 +15,6 @@ pub struct TargetList {
     targets: Mutex<VecDeque<NodeOpt>>,
 }
 
-// TODO: 这种随机方式在图片被大部分覆盖时需要较高代价才能获取到结果，需要改进
 impl TargetList {
     pub fn new(list: VecDeque<NodeOpt>) -> TargetList {
         TargetList {
@@ -28,11 +27,25 @@ impl TargetList {
         use rand::{thread_rng, Rng};
         let mut rng = thread_rng();
         let mut pos = rng.gen_range(0..targets.len());
-        while targets[pos].check(paint_board) {
-            pos = rng.gen_range(0..targets.len());
-        }
+        loop {
+            // TODO: 可以使用线段树二分来优化，是否有必要?
 
-        targets[pos].clone()
+            // TODO: this var should from config file
+            for _i in 0..50 {
+                if !targets[pos].check(paint_board) {
+                    return targets[pos].clone();
+                }
+                pos = rng.gen_range(0..targets.len());
+            }
+            for i in 0..targets.len() {
+                if !targets[i].check(paint_board) {
+                    return targets[i].clone();
+                }
+            }
+
+            log::info!("There is nothing to do.");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
     }
 }
 
