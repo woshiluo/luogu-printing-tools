@@ -3,7 +3,6 @@ use crate::from_32;
 use crate::cookie::CookieList;
 use crate::node::NodeOpt;
 use crate::Config;
-use crate::ScriptError;
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -49,9 +48,29 @@ impl TargetList {
     }
 }
 
+pub struct ColorArray {
+    array: Mutex<Vec<Vec<usize>>>,
+}
+
+impl ColorArray {
+    // TODO: set by config
+    pub fn new() -> ColorArray {
+        ColorArray {
+            array: Mutex::from(vec![vec![1; 600]; 1000]),
+        }
+    }
+
+    pub fn color(&self, x: usize, y: usize) -> usize {
+        self.array.lock().unwrap()[x][y]
+    }
+    pub fn set_color(&self, x: usize, y: usize, color: usize) {
+        self.array.lock().unwrap()[x][y] = color
+    }
+}
+
 /// 画板
 pub struct PaintBoard {
-    pub color: Mutex<Vec<Vec<usize>>>,
+    pub color: ColorArray,
     pub targets: TargetList,
 }
 
@@ -79,12 +98,9 @@ pub fn get_board(config: &Config) -> Option<String> {
 // TODO: Refactor
 impl PaintBoard {
     /// 测试指定点颜色
-    pub fn check(&self, x: usize, y: usize, color: usize) -> bool {
-        self.color.lock().unwrap()[x][y] == color
-    }
     pub fn get_update(&self) -> NodeOpt {
         log::debug!("Start to get work{:?}", std::time::Instant::now());
-        self.targets.get_target(&self)
+        self.targets.get_target(self)
     }
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         //use tokio::runtime::Runtime;
@@ -129,10 +145,9 @@ impl PaintBoard {
                 ()
             } // just log and skip if the process failed to get board from remote server
             Some(raw_board) => {
-                let mut color = self.color.lock().unwrap();
                 for (i, line) in raw_board.lines().enumerate() {
                     for (j, chr) in line.chars().enumerate() {
-                        color[i][j] = from_32(chr);
+                        self.color.set_color(i, j, from_32(chr));
                     }
                 }
                 ()

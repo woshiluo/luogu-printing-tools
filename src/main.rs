@@ -1,12 +1,12 @@
 use draw_script::cookie::{Cookie, CookieList, RawCookie};
 use draw_script::node::NodeOpt;
-use draw_script::paintboard::{PaintBoard, TargetList};
+use draw_script::paintboard::{ColorArray, PaintBoard, TargetList};
 use draw_script::Config;
 use draw_script::ScriptError;
 
 use std::collections::VecDeque;
 use std::process;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 fn get_cookie_from_dir<T>(dir: &T) -> Result<VecDeque<Cookie>, ScriptError>
 where
@@ -53,7 +53,7 @@ fn main() {
         },
     ));
     let paint_board = PaintBoard {
-        color: Mutex::from(vec![vec![1; 600]; 1000]),
+        color: ColorArray::new(),
         targets: TargetList::new(get_node(&config.node_file).unwrap_or_else(|err| {
             eprintln!("Error getting nodes: {}", err);
             process::exit(1);

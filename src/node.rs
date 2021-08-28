@@ -23,7 +23,7 @@ pub struct Status {
 
 impl NodeOpt {
     pub fn check(&self, paint_board: &PaintBoard) -> bool {
-        paint_board.check(self.x, self.y, self.color)
+        paint_board.color.color(self.x, self.y) == self.color
     }
 
     pub fn update(&self, cookies: String, config: &Config) -> Result<(), ScriptError> {
