@@ -1,6 +1,6 @@
 use draw_script::cookie::{Cookie, CookieList, RawCookie};
 use draw_script::node::NodeOpt;
-use draw_script::paintboard::PaintBoard;
+use draw_script::paintboard::{PaintBoard, TargetList};
 use draw_script::Config;
 use draw_script::ScriptError;
 
@@ -53,14 +53,11 @@ fn main() {
         },
     ));
     let paint_board = PaintBoard {
-        color: Arc::from(Mutex::from(vec![vec![1; 600]; 1000])),
-        gol_color: Arc::from(Mutex::from(get_node(&config.node_file).unwrap_or_else(
-            |err| {
-                eprintln!("Error getting nodes: {}", err);
-                process::exit(1);
-            },
-        ))),
-        wait_check: Arc::from(Mutex::from(VecDeque::new())),
+        color: Mutex::from(vec![vec![1; 600]; 1000]),
+        targets: TargetList::new(get_node(&config.node_file).unwrap_or_else(|err| {
+            eprintln!("Error getting nodes: {}", err);
+            process::exit(1);
+        })),
     };
     paint_board.start_daemon(Arc::from(cookie_list), Arc::clone(&config));
 }

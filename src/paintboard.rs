@@ -11,11 +11,35 @@ use std::sync::{Arc, Mutex};
 use reqwest::header;
 use reqwest::header::HeaderMap;
 
+pub struct TargetList {
+    targets: Mutex<VecDeque<NodeOpt>>,
+}
+
+// TODO: 这种随机方式在图片被大部分覆盖时需要较高代价才能获取到结果，需要改进
+impl TargetList {
+    pub fn new(list: VecDeque<NodeOpt>) -> TargetList {
+        TargetList {
+            targets: Mutex::new(list),
+        }
+    }
+
+    pub fn get_target(&self, paint_board: &PaintBoard) -> NodeOpt {
+        let targets = self.targets.lock().unwrap();
+        use rand::{thread_rng, Rng};
+        let mut rng = thread_rng();
+        let mut pos = rng.gen_range(0..targets.len());
+        while targets[pos].check(paint_board) {
+            pos = rng.gen_range(0..targets.len());
+        }
+
+        targets[pos].clone()
+    }
+}
+
 /// 画板
 pub struct PaintBoard {
-    pub color: Arc<Mutex<Vec<Vec<usize>>>>,
-    pub gol_color: Arc<Mutex<VecDeque<NodeOpt>>>,
-    pub wait_check: Arc<Mutex<VecDeque<(NodeOpt, std::time::Instant)>>>,
+    pub color: Mutex<Vec<Vec<usize>>>,
+    pub targets: TargetList,
 }
 
 /// 获取画板状态
@@ -42,53 +66,12 @@ pub fn get_board(config: &Config) -> Option<String> {
 // TODO: Refactor
 impl PaintBoard {
     /// 测试指定点颜色
-    pub fn check(&self, opt: &NodeOpt) -> bool {
-        self.color.lock().unwrap()[opt.x][opt.y] == opt.color
+    pub fn check(&self, x: usize, y: usize, color: usize) -> bool {
+        self.color.lock().unwrap()[x][y] == color
     }
-    pub fn get_update(&self) -> Option<NodeOpt> {
+    pub fn get_update(&self) -> NodeOpt {
         log::debug!("Start to get work{:?}", std::time::Instant::now());
-        let mut queue = self.gol_color.lock().unwrap();
-        let mut wait_check = self.wait_check.lock().unwrap();
-        while wait_check.is_empty() == false {
-            let time = wait_check.front().unwrap().1;
-            if std::time::Instant::now() - time >= std::time::Duration::from_secs(5) {
-                let cur = wait_check.pop_front().unwrap().0;
-                queue.push_back(cur);
-            } else if queue.len() != 0 {
-                break;
-            } else {
-                std::thread::sleep(std::time::Duration::from_secs(1));
-            }
-        }
-        use rand::{thread_rng, Rng};
-        let mut rng = thread_rng();
-        let cur = rng.gen_range(0..2);
-        let mut cnt = 0;
-        let tot = queue.len();
-        loop {
-            if cnt > tot {
-                break;
-            }
-            cnt += 1;
-            if cur == 0 {
-                let front = queue.pop_front().unwrap();
-                if self.check(&front) == false {
-                    wait_check.push_back((front.clone(), std::time::Instant::now()));
-                    return Some(front);
-                } else {
-                    queue.push_back(front);
-                }
-            } else {
-                let back = queue.pop_back().unwrap();
-                if self.check(&back) == false {
-                    wait_check.push_back((back.clone(), std::time::Instant::now()));
-                    return Some(back);
-                } else {
-                    queue.push_front(back);
-                }
-            }
-        }
-        None
+        self.targets.get_target(&self)
     }
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         //use tokio::runtime::Runtime;
@@ -124,15 +107,11 @@ impl PaintBoard {
                 log::info!("Thread {} started", i);
                 loop {
                     let cookies = cookie_list.get_cookie(&config);
-                    if let Some(opt) = board.get_update() {
-                        log::info!("Thread {}: get work {:?}", i, opt);
-                        if let Err(err) = opt.update(cookies, &config) {
-                            log::error!("Failed paint: {}", err);
-                        }
-                    } else {
-                        log::info!("Thread {}: There is nothing to do", i);
-                        std::thread::sleep(std::time::Duration::from_secs(5));
+                    let opt = board.get_update();
+                    if let Err(err) = opt.update(cookies, &config) {
+                        log::error!("Failed paint: {}", err);
                     }
+
                     std::thread::sleep(std::time::Duration::from_millis(500));
                 }
             });
