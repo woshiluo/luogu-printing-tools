@@ -90,17 +90,7 @@ impl PaintBoard {
         //use tokio::runtime::Runtime;
         let board = Arc::from(self);
 
-        let handle_ws;
         let handle_board;
-        {
-            let board = board.clone();
-            let config = Arc::clone(&config);
-            handle_ws = std::thread::spawn(move || loop {
-                if let Err(err) = board.websocket_daemon(&config) {
-                    log::error!("{}", err);
-                }
-            });
-        }
         {
             let board = board.clone();
             let config = Arc::clone(&config);
@@ -130,30 +120,6 @@ impl PaintBoard {
             });
         }
         handle_board.join().unwrap();
-        handle_ws.join().unwrap();
-    }
-    fn websocket_daemon(&self, config: &Config) -> Result<(), ScriptError> {
-        use websocket::{ClientBuilder, Message};
-        let mut client = ClientBuilder::new(&config.websocket_addr).unwrap();
-        let mut client = client.connect_secure(None)?;
-        client.send_message(&Message::text(
-            "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
-        ))?;
-        log::info!("Websocket conn est, wait a recv");
-        let mut first_req = false;
-        for message in client.incoming_messages() {
-            if first_req == false {
-                first_req = true;
-                continue;
-            }
-            log::trace!("Update recv: {:?}", message);
-            if let websocket::OwnedMessage::Text(message) = message? {
-                if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
-                    self.color.lock().unwrap()[update.x][update.y] = update.color;
-                }
-            }
-        }
-        Ok(())
     }
     fn refresh_board(&self, config: &Config) {
         let raw_board = get_board(config);
