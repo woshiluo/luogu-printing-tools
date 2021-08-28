@@ -96,7 +96,6 @@ pub fn get_board(config: &Config) -> Option<String> {
 }
 
 impl PaintBoard {
-    /// 测试指定点颜色
     pub fn get_update(&self) -> NodeOpt {
         log::debug!("Start to get work{:?}", std::time::Instant::now());
         self.targets.get_target(self)
