@@ -1,6 +1,6 @@
 use crate::from_32;
 
-use crate::cookies::CookiesList;
+use crate::cookie::CookieList;
 use crate::node::NodeOpt;
 use crate::Config;
 use crate::ScriptError;
@@ -37,22 +37,6 @@ pub fn get_board(config: &Config) -> Option<String> {
     }
     log::error!("All retries to get board failed!");
     None
-}
-
-impl CookiesList {
-    pub fn get_cookie(&self, wait_time: u64) -> String {
-        let mut list = self.cookies.lock().unwrap();
-        let mut cur_cookie = list.pop_front().unwrap();
-        let res = cur_cookie.cookies.clone();
-        while std::time::Instant::now() - cur_cookie.last_time
-            <= std::time::Duration::from_secs(wait_time)
-        {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        cur_cookie.last_time = std::time::Instant::now();
-        list.push_back(cur_cookie);
-        res
-    }
 }
 
 // TODO: Refactor
@@ -106,7 +90,7 @@ impl PaintBoard {
         }
         None
     }
-    pub fn start_daemon(self, cookies_list: Arc<CookiesList>, config: Arc<Config>) {
+    pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         //use tokio::runtime::Runtime;
         let board = Arc::from(self);
 
@@ -134,12 +118,12 @@ impl PaintBoard {
         }
         for i in 0..4 {
             let board = board.clone();
-            let cookies_list = cookies_list.clone();
+            let cookie_list = cookie_list.clone();
             let config = Arc::clone(&config);
             std::thread::spawn(move || {
                 log::info!("Thread {} started", i);
                 loop {
-                    let cookies = cookies_list.get_cookie(config.wait_time);
+                    let cookies = cookie_list.get_cookie(&config);
                     if let Some(opt) = board.get_update() {
                         log::info!("Thread {}: get work {:?}", i, opt);
                         if let Err(err) = opt.update(cookies, &config) {
