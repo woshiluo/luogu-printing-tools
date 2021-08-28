@@ -95,7 +95,6 @@ pub fn get_board(config: &Config) -> Option<String> {
     None
 }
 
-// TODO: Refactor
 impl PaintBoard {
     /// 测试指定点颜色
     pub fn get_update(&self) -> NodeOpt {
@@ -103,14 +102,15 @@ impl PaintBoard {
         self.targets.get_target(self)
     }
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
-        //use tokio::runtime::Runtime;
+        use threadpool::ThreadPool;
         let board = Arc::from(self);
+        // TODO: set from config
+        let pool = ThreadPool::new(4 + 1);
 
-        let handle_board;
         {
             let board = board.clone();
-            let config = Arc::clone(&config);
-            handle_board = std::thread::spawn(move || {
+            let config = config.clone();
+            pool.execute(move || {
                 log::info!("Start auto refresh daemon");
                 loop {
                     board.refresh_board(&config);
@@ -118,31 +118,22 @@ impl PaintBoard {
                 }
             });
         }
-        for i in 0..4 {
-            let board = board.clone();
-            let cookie_list = cookie_list.clone();
-            let config = Arc::clone(&config);
-            std::thread::spawn(move || {
-                log::info!("Thread {} started", i);
-                loop {
-                    let cookies = cookie_list.get_cookie(&config);
-                    let opt = board.get_update();
-                    if let Err(err) = opt.update(cookies, &config) {
-                        log::error!("Failed paint: {}", err);
-                    }
-
-                    std::thread::sleep(std::time::Duration::from_millis(500));
+        loop {
+            let cookie = cookie_list.get_cookie(&config);
+            let config = config.clone();
+            let opt = board.get_update();
+            pool.execute(move || {
+                if let Err(err) = opt.update(cookie, &config) {
+                    log::warn!("Failed update node {}", err);
                 }
-            });
+            })
         }
-        handle_board.join().unwrap();
     }
     fn refresh_board(&self, config: &Config) {
         let raw_board = get_board(config);
         match raw_board {
             None => {
                 log::error!("Failed to refresh board!");
-                ()
             } // just log and skip if the process failed to get board from remote server
             Some(raw_board) => {
                 for (i, line) in raw_board.lines().enumerate() {
@@ -150,7 +141,6 @@ impl PaintBoard {
                         self.color.set_color(i, j, from_32(chr));
                     }
                 }
-                ()
             }
         }
     }
