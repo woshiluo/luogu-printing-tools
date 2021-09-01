@@ -1,5 +1,5 @@
 pub mod config;
-pub mod cookies;
+pub mod cookie;
 pub mod node;
 pub mod paintboard;
 

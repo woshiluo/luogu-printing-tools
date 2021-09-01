@@ -1,4 +1,6 @@
+use super::paintboard::PaintBoard;
 use super::{Config, ScriptError};
+
 use serde::{Deserialize, Serialize};
 
 use reqwest::header;
@@ -20,6 +22,10 @@ pub struct Status {
 }
 
 impl NodeOpt {
+    pub fn check(&self, paint_board: &PaintBoard) -> bool {
+        paint_board.color.color(self.x, self.y) == self.color
+    }
+
     pub fn update(&self, cookies: String, config: &Config) -> Result<(), ScriptError> {
         let mut headers = HeaderMap::new();
         headers.insert(header::REFERER, config.board_addr.parse().unwrap());
