@@ -21,7 +21,7 @@ impl TargetList {
         }
     }
 
-    pub fn get_target(&self, paint_board: &PaintBoard) -> NodeOpt {
+    pub fn get_target(&self, config: &Config, paint_board: &PaintBoard) -> NodeOpt {
         let targets = self.targets.lock().unwrap();
         use rand::{thread_rng, Rng};
         let mut rng = thread_rng();
@@ -30,7 +30,7 @@ impl TargetList {
             // TODO: 可以使用线段树二分来优化，是否有必要?
 
             // TODO: this var should from config file
-            for _i in 0..50 {
+            for _i in 0..config.node_retry_times {
                 if !targets[pos].check(paint_board) {
                     return targets[pos].clone();
                 }
@@ -95,9 +95,9 @@ pub fn get_board(config: &Config) -> Option<String> {
 }
 
 impl PaintBoard {
-    pub fn get_update(&self) -> NodeOpt {
+    pub fn get_update(&self, config: &Config) -> NodeOpt {
         log::debug!("Start to get work{:?}", std::time::Instant::now());
-        self.targets.get_target(self)
+        self.targets.get_target(config, self)
     }
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         use threadpool::ThreadPool;
@@ -118,7 +118,7 @@ impl PaintBoard {
         loop {
             let cookie = cookie_list.get_cookie(&config);
             let config = config.clone();
-            let opt = board.get_update();
+            let opt = board.get_update(&config);
             pool.execute(move || {
                 if let Err(err) = opt.update(cookie, &config) {
                     log::warn!("Failed update node {}", err);
