@@ -6,3 +6,4 @@ wait_time = 30
 thread_num = 5
 board_width = 1000
 board_height = 600
+node_retry_time = 50

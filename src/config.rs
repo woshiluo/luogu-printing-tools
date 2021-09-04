@@ -14,6 +14,7 @@ pub struct Config {
     pub thread_num: usize,
     pub board_width: usize,
     pub board_height: usize,
+    pub node_retry_times: usize,
 }
 
 impl Config {
