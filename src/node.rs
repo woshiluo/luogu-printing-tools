@@ -47,7 +47,7 @@ impl NodeOpt {
         let status = status.status;
         if status == 401 {
             log::warn!("{} is logouted", cookies);
-            Err(ScriptError::CookieOutdated)?;
+            return Err(ScriptError::CookieOutdated);
         }
         Ok(())
     }
