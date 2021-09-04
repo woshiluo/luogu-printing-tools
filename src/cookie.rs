@@ -65,4 +65,13 @@ impl CookieList {
 
         cookie
     }
+    pub fn remove_cookie(&self, cookie: &str) {
+        let mut list = self.list.lock().unwrap();
+        for i in 0..list.len() {
+            if list.get(i).unwrap().cookie == cookie {
+                list.remove(i);
+                break;
+            }
+        }
+    }
 }

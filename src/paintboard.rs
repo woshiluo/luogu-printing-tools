@@ -116,11 +116,17 @@ impl PaintBoard {
             });
         }
         loop {
-            let cookie = cookie_list.get_cookie(&config);
+            let cookie_list = cookie_list.clone();
+            let board = board.clone();
             let config = config.clone();
-            let opt = board.get_update(&config);
             pool.execute(move || {
-                if let Err(err) = opt.update(cookie, &config) {
+                use crate::ScriptError;
+                let opt = board.get_update();
+                let cookie = cookie_list.get_cookie(&config);
+                if let Err(err) = opt.update(&cookie, &config) {
+                    if let ScriptError::CookieOutdated = err {
+                        cookie_list.remove_cookie(&cookie);
+                    }
                     log::warn!("Failed update node {}", err);
                 }
             })

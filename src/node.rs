@@ -26,7 +26,7 @@ impl NodeOpt {
         paint_board.color.color(self.x, self.y) == self.color
     }
 
-    pub fn update(&self, cookies: String, config: &Config) -> Result<(), ScriptError> {
+    pub fn update(&self, cookies: &str, config: &Config) -> Result<(), ScriptError> {
         let mut headers = HeaderMap::new();
         headers.insert(header::REFERER, config.board_addr.parse().unwrap());
         headers.insert(header::COOKIE, cookies.parse().unwrap());
@@ -47,6 +47,7 @@ impl NodeOpt {
         let status = status.status;
         if status == 401 {
             log::warn!("{} is logouted", cookies);
+            return Err(ScriptError::CookieOutdated);
         }
         Ok(())
     }
