@@ -53,7 +53,7 @@ fn main() {
         },
     ));
     let paint_board = PaintBoard {
-        color: ColorArray::new(),
+        color: ColorArray::new(Arc::clone(&config)),
         targets: TargetList::new(get_node(&config.node_file).unwrap_or_else(|err| {
             eprintln!("Error getting nodes: {}", err);
             process::exit(1);

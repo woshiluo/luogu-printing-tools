@@ -53,10 +53,9 @@ pub struct ColorArray {
 }
 
 impl ColorArray {
-    // TODO: set by config
-    pub fn new() -> ColorArray {
+    pub fn new(config: Arc<Config>) -> ColorArray {
         ColorArray {
-            array: Mutex::from(vec![vec![1; 600]; 1000]),
+            array: Mutex::from(vec![vec![1; config.board_height]; config.board_width]),
         }
     }
 
@@ -80,7 +79,7 @@ pub fn get_board(config: &Config) -> Option<String> {
     headers.insert(header::REFERER, config.board_addr.parse().unwrap());
     let client = reqwest::blocking::Client::new();
     // try 3 times to send request
-    for i in 1..4 {
+    for i in 0..3 {
         let rep = client.get(&format!("{}/board", config.board_addr)).send();
         match rep {
             Ok(res) => {
@@ -103,8 +102,7 @@ impl PaintBoard {
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         use threadpool::ThreadPool;
         let board = Arc::from(self);
-        // TODO: set from config
-        let pool = ThreadPool::new(4 + 1);
+        let pool = ThreadPool::new(config.thread_num);
 
         {
             let board = board.clone();

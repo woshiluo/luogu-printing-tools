@@ -11,6 +11,9 @@ pub struct Config {
     pub cookie_dir: String,
     pub node_file: String,
     pub wait_time: u64,
+    pub thread_num: usize,
+    pub board_width: usize,
+    pub board_height: usize,
 }
 
 impl Config {
