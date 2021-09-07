@@ -121,7 +121,7 @@ impl PaintBoard {
             let config = config.clone();
             pool.execute(move || {
                 use crate::ScriptError;
-                let opt = board.get_update();
+                let opt = board.get_update(&config);
                 let cookie = cookie_list.get_cookie(&config);
                 if let Err(err) = opt.update(&cookie, &config) {
                     if let ScriptError::CookieOutdated = err {
