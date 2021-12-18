@@ -59,8 +59,8 @@ mod tests {
             node_file: "/home/node.file".to_string(),
             wait_time: 30,
             thread_num: 8,
-            board_width: 800,
-            board_height: 400,
+            board_width: 1000,
+            board_height: 600,
             node_retry_times: 5,
         };
 
@@ -80,8 +80,8 @@ mod tests {
             node_file: "/home/node.file".to_string(),
             wait_time: 30,
             thread_num: 8,
-            board_width: 800,
-            board_height: 400,
+            board_width: 1000,
+            board_height: 600,
             node_retry_times: 5,
         };
 
