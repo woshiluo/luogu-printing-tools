@@ -29,7 +29,6 @@ impl TargetList {
         loop {
             // TODO: 可以使用线段树二分来优化，是否有必要?
 
-            // TODO: this var should from config file
             for _i in 0..config.node_retry_times {
                 if !targets[pos].check(paint_board) {
                     return targets[pos].clone();
@@ -112,6 +111,43 @@ impl PaintBoard {
                 loop {
                     board.refresh_board(&config);
                     std::thread::sleep(std::time::Duration::from_secs(120));
+                }
+            });
+        }
+        {
+            let board = board.clone();
+            let config = config.clone();
+            pool.execute(move || {
+                log::info!("Start websocket update daemon");
+                use websocket::{ClientBuilder, Message};
+                // TODO: What to do if init connect failed?
+                let mut client = ClientBuilder::new(&config.websocket_addr).unwrap();
+                let mut client = client.connect(None).unwrap();
+                client
+                    .send_message(&Message::text(
+                        "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
+                    ))
+                    .unwrap();
+                log::info!("Websocket conn est, wait for messages");
+                let mut first_req = false;
+                for message in client.incoming_messages() {
+                    if first_req == false {
+                        first_req = true;
+                        continue;
+                    }
+                    log::trace!("Update recv: {:?}", message);
+                    match message {
+                        Ok(message) => {
+                            if let websocket::OwnedMessage::Text(message) = message {
+                                if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
+                                    board.color.set_color(update.x, update.y, update.color);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            log::error!("Failed Recv websocket: {:?}", err);
+                        }
+                    }
                 }
             });
         }

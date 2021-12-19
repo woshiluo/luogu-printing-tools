@@ -22,11 +22,11 @@ fn generate_cookie_list() -> CookieList {
 
 fn generate_nodes() -> VecDeque<NodeOpt> {
     let mut list = VecDeque::new();
-    for x in 0..10 {
-        for y in 0..10 {
+    for x in 0..100 {
+        for y in 0..100 {
             list.push_back(NodeOpt {
-                x: x,
-                y: y,
+                x,
+                y,
                 color: rand::thread_rng().gen_range(0..32),
             })
         }
@@ -36,6 +36,8 @@ fn generate_nodes() -> VecDeque<NodeOpt> {
 
 #[test]
 fn test() {
+    pretty_env_logger::init();
+
     // use local board server https://github.com/ouuan/fake-luogu-paintboard-server
     // do not forget to set the cd to 0 before starting the server
     let config = Arc::new(Config {
