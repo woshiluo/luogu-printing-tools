@@ -155,6 +155,10 @@ impl PaintBoard {
             let cookie_list = cookie_list.clone();
             let board = board.clone();
             let config = config.clone();
+            while pool.max_count() <= pool.active_count() {
+                // TODO: Set with config
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
             pool.execute(move || {
                 use crate::ScriptError;
                 let opt = board.get_update(&config);
@@ -165,7 +169,7 @@ impl PaintBoard {
                     }
                     log::warn!("Failed update node {}", err);
                 }
-            })
+            });
         }
     }
     fn refresh_board(&self, config: &Config) {
