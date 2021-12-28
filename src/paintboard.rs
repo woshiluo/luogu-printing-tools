@@ -126,26 +126,26 @@ impl PaintBoard {
             let config = config.clone();
             pool.execute(move || {
                 log::info!("Start websocket update daemon");
-                use websocket::{ClientBuilder, Message};
+                use tungstenite::{client, protocol::Message};
                 // TODO: What to do if init connect failed?
-                let mut client = ClientBuilder::new(&config.websocket_addr).unwrap();
-                let mut client = client.connect(None).unwrap();
+                let mut client = client::connect(&config.websocket_addr).unwrap().0;
                 client
-                    .send_message(&Message::text(
+                    .write_message(Message::text(
                         "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
                     ))
                     .unwrap();
                 log::info!("Websocket conn est, wait for messages");
                 let mut first_req = false;
-                for message in client.incoming_messages() {
+                loop {
+                    let message = client.read_message();
                     if first_req == false {
                         first_req = true;
                         continue;
                     }
-                    log::trace!("Update recv: {:?}", message);
+                    log::info!("Update recv: {:?}", message);
                     match message {
                         Ok(message) => {
-                            if let websocket::OwnedMessage::Text(message) = message {
+                            if let Message::Text(message) = message {
                                 if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
                                     board.color.set_color(update.x, update.y, update.color);
                                 }
