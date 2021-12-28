@@ -54,7 +54,7 @@ fn test() {
     let cookie_list = generate_cookie_list();
     let paint_board = PaintBoard {
         color: ColorArray::new(Arc::clone(&config)),
-        targets: TargetList::new(generate_nodes()),
+        targets: TargetList::new(Arc::clone(&config), generate_nodes()),
     };
     paint_board.start_daemon(Arc::from(cookie_list), Arc::clone(&config));
 }

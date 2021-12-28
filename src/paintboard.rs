@@ -10,40 +10,61 @@ use std::sync::{Arc, Mutex};
 use reqwest::header;
 use reqwest::header::HeaderMap;
 
+// TODO: use Option
+const FAILED_COLOR: usize = 63;
+
 pub struct TargetList {
     targets: Mutex<VecDeque<NodeOpt>>,
+    array: ColorArray,
 }
 
 impl TargetList {
-    pub fn new(list: VecDeque<NodeOpt>) -> TargetList {
+    pub fn new(config: Arc<Config>, list: VecDeque<NodeOpt>) -> TargetList {
+        let array = ColorArray::new(config.clone());
+        for i in 0..config.board_width {
+            for j in 0..config.board_height {
+                array.set_color(i, j, FAILED_COLOR);
+            }
+        }
+        for node in &list {
+            array.set_color(node.x, node.y, node.color);
+        }
         TargetList {
-            targets: Mutex::new(list),
+            targets: Mutex::new(VecDeque::from(list)),
+            array,
         }
     }
 
-    pub fn get_target(&self, config: &Config, paint_board: &PaintBoard) -> NodeOpt {
-        let targets = self.targets.lock().unwrap();
-        use rand::{thread_rng, Rng};
-        let mut rng = thread_rng();
-        let mut pos = rng.gen_range(0..targets.len());
+    pub fn get_target(&self, paint_board: &PaintBoard) -> NodeOpt {
         loop {
-            // TODO: 可以使用线段树二分来优化，是否有必要?
-
-            for _i in 0..config.node_retry_times {
-                if !targets[pos].check(paint_board) {
-                    return targets[pos].clone();
+            // 避免 targets 堵塞，只在查找时 lock
+            {
+                let mut targets = self.targets.lock().unwrap();
+                while targets.len() > 0 && targets.front().unwrap().check(paint_board) {
+                    targets.pop_front();
                 }
-                pos = rng.gen_range(0..targets.len());
-            }
-            for i in 0..targets.len() {
-                if !targets[i].check(paint_board) {
-                    return targets[i].clone();
+                if targets.len() > 0 {
+                    let node = targets.front().unwrap().clone();
+                    targets.pop_front();
+                    return node;
                 }
             }
 
             log::info!("There is nothing to do.");
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
+    }
+
+    pub fn color(&self, x: usize, y: usize) -> usize {
+        self.array.color(x, y)
+    }
+    pub fn add_list(&self, x: usize, y: usize) {
+        let mut targets = self.targets.lock().unwrap();
+        targets.push_back(NodeOpt {
+            x,
+            y,
+            color: self.array.color(x, y),
+        });
     }
 }
 
@@ -94,9 +115,19 @@ pub fn get_board(config: &Config) -> Option<String> {
 }
 
 impl PaintBoard {
-    pub fn get_update(&self, config: &Config) -> NodeOpt {
+    pub fn get_update(&self) -> NodeOpt {
         log::debug!("Start to get work{:?}", std::time::Instant::now());
-        self.targets.get_target(config, self)
+        self.targets.get_target(self)
+    }
+    pub fn check(&self, x: usize, y: usize) -> bool {
+        let target = self.targets.color(x, y);
+        return target == 63 || target == self.color.color(x, y);
+    }
+    pub fn set_color(&self, x: usize, y: usize, color: usize) {
+        self.color.set_color(x, y, color);
+        if !self.check(x, y) {
+            self.targets.add_list(x, y);
+        }
     }
     pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
         use threadpool::ThreadPool;
@@ -140,7 +171,7 @@ impl PaintBoard {
                         Ok(message) => {
                             if let websocket::OwnedMessage::Text(message) = message {
                                 if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
-                                    board.color.set_color(update.x, update.y, update.color);
+                                    board.set_color(update.x, update.y, update.color);
                                 }
                             }
                         }
@@ -161,9 +192,10 @@ impl PaintBoard {
             }
             pool.execute(move || {
                 use crate::ScriptError;
-                let opt = board.get_update(&config);
+                let opt = board.get_update();
                 let cookie = cookie_list.get_cookie(&config);
                 if let Err(err) = opt.update(&cookie, &config) {
+                    board.set_color(opt.x, opt.y, FAILED_COLOR);
                     if let ScriptError::CookieOutdated = err {
                         cookie_list.remove_cookie(&cookie);
                     }
@@ -181,7 +213,7 @@ impl PaintBoard {
             Some(raw_board) => {
                 for (i, line) in raw_board.lines().enumerate() {
                     for (j, chr) in line.chars().enumerate() {
-                        self.color.set_color(i, j, from_32(chr));
+                        self.set_color(i, j, from_32(chr));
                     }
                 }
             }

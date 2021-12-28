@@ -49,6 +49,10 @@ impl NodeOpt {
             log::warn!("{} is logouted", cookies);
             return Err(ScriptError::CookieOutdated);
         }
+        if status != 200 {
+            log::warn!("Request failed");
+            return Err(ScriptError::FailedRequest);
+        }
         Ok(())
     }
 }
