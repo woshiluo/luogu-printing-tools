@@ -121,10 +121,51 @@ impl PaintBoard {
                 }
             });
         }
+        {
+            let board = board.clone();
+            let config = config.clone();
+            pool.execute(move || {
+                log::info!("Start websocket update daemon");
+                use websocket::{ClientBuilder, Message};
+                // TODO: What to do if init connect failed?
+                let mut client = ClientBuilder::new(&config.websocket_addr).unwrap();
+                let mut client = client.connect(None).unwrap();
+                client
+                    .send_message(&Message::text(
+                        "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
+                    ))
+                    .unwrap();
+                log::info!("Websocket conn est, wait for messages");
+                let mut first_req = false;
+                for message in client.incoming_messages() {
+                    if first_req == false {
+                        first_req = true;
+                        continue;
+                    }
+                    log::trace!("Update recv: {:?}", message);
+                    match message {
+                        Ok(message) => {
+                            if let websocket::OwnedMessage::Text(message) = message {
+                                if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
+                                    board.color.set_color(update.x, update.y, update.color);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            log::error!("Failed Recv websocket: {:?}", err);
+                        }
+                    }
+                }
+            });
+        }
         loop {
             let cookie_list = cookie_list.clone();
             let board = board.clone();
             let config = config.clone();
+            while pool.max_count() <= pool.active_count() {
+                // TODO: Set with config
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
             pool.execute(move || {
                 use crate::ScriptError;
                 let opt = board.get_update(&config);
@@ -135,7 +176,7 @@ impl PaintBoard {
                     }
                     log::warn!("Failed update node {}", err);
                 }
-            })
+            });
         }
     }
     fn refresh_board(&self, config: &Config) {
