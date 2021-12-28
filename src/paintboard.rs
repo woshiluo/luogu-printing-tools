@@ -5,6 +5,7 @@ use crate::node::NodeOpt;
 use crate::Config;
 
 use std::collections::VecDeque;
+use std::process;
 use std::sync::{Arc, Mutex};
 
 use reqwest::header;
@@ -29,7 +30,6 @@ impl TargetList {
         loop {
             // TODO: 可以使用线段树二分来优化，是否有必要?
 
-            // TODO: this var should from config file
             for _i in 0..config.node_retry_times {
                 if !targets[pos].check(paint_board) {
                     return targets[pos].clone();
@@ -43,6 +43,12 @@ impl TargetList {
             }
 
             log::info!("There is nothing to do.");
+
+            #[cfg(test)]
+            {
+                eprintln!("Test complete!");
+                process::exit(0);
+            }
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
     }

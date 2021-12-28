@@ -22,8 +22,8 @@ fn generate_cookie_list() -> CookieList {
 
 fn generate_nodes() -> VecDeque<NodeOpt> {
     let mut list = VecDeque::new();
-    for x in 0..10 {
-        for y in 0..10 {
+    for x in 0..5 {
+        for y in 0..5 {
             list.push_back(NodeOpt {
                 x: x,
                 y: y,
