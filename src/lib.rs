@@ -15,6 +15,7 @@ pub enum ScriptError {
     FailedProcessRequest(reqwest::Error),
     UnexpectedUrl(UrlError),
     CookieOutdated,
+    FailedRequest,
 }
 
 pub enum UrlError {
@@ -81,6 +82,7 @@ impl std::fmt::Display for ScriptError {
             ScriptError::FailedProcessRequest(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::UnexpectedUrl(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::CookieOutdated => formatter.write_str("Cookie 已经过期"),
+            ScriptError::FailedRequest => formatter.write_str("绘制请求失败"),
         }
     }
 }

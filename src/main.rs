@@ -26,8 +26,15 @@ fn get_node<T>(file: &T) -> Result<VecDeque<NodeOpt>, ScriptError>
 where
     T: AsRef<std::path::Path>,
 {
+    use rand::seq::SliceRandom;
+    use rand::thread_rng;
+
+    let mut rng = thread_rng();
     let mut queue = VecDeque::new();
-    let dot_draw: Vec<[usize; 3]> = serde_json::from_str(&std::fs::read_to_string(file.as_ref())?)?;
+    let mut dot_draw: Vec<[usize; 3]> =
+        serde_json::from_str(&std::fs::read_to_string(file.as_ref())?)?;
+    dot_draw.shuffle(&mut rng);
+
     for node in dot_draw {
         queue.push_back(NodeOpt {
             x: node[0],
@@ -54,10 +61,13 @@ fn main() {
     ));
     let paint_board = PaintBoard {
         color: ColorArray::new(Arc::clone(&config)),
-        targets: TargetList::new(get_node(&config.node_file).unwrap_or_else(|err| {
-            eprintln!("Error getting nodes: {}", err);
-            process::exit(1);
-        })),
+        targets: TargetList::new(
+            Arc::clone(&config),
+            get_node(&config.node_file).unwrap_or_else(|err| {
+                eprintln!("Error getting nodes: {}", err);
+                process::exit(1);
+            }),
+        ),
     };
     paint_board.start_daemon(Arc::from(cookie_list), Arc::clone(&config));
 }
