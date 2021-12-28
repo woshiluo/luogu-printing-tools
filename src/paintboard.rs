@@ -121,7 +121,7 @@ impl PaintBoard {
     }
     pub fn check(&self, x: usize, y: usize) -> bool {
         let target = self.targets.color(x, y);
-        return target == 63 || target == self.color.color(x, y);
+        return target == FAILED_COLOR || target == self.color.color(x, y);
     }
     pub fn set_color(&self, x: usize, y: usize, color: usize) {
         self.color.set_color(x, y, color);
