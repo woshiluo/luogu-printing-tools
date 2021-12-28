@@ -5,7 +5,6 @@ use crate::node::NodeOpt;
 use crate::Config;
 
 use std::collections::VecDeque;
-use std::process;
 use std::sync::{Arc, Mutex};
 
 use reqwest::header;
@@ -52,12 +51,6 @@ impl TargetList {
             }
 
             log::info!("There is nothing to do.");
-
-            #[cfg(test)]
-            {
-                eprintln!("Test complete!");
-                process::exit(0);
-            }
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
     }
