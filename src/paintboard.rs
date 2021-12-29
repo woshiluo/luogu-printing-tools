@@ -10,9 +10,6 @@ use std::sync::{Arc, Mutex};
 use reqwest::header;
 use reqwest::header::HeaderMap;
 
-// TODO: use Option
-const FAILED_COLOR: usize = 63;
-
 pub struct TargetList {
     targets: Mutex<VecDeque<NodeOpt>>,
     array: ColorArray,
@@ -23,11 +20,11 @@ impl TargetList {
         let array = ColorArray::new(config.clone());
         for i in 0..config.board_width {
             for j in 0..config.board_height {
-                array.set_color(i, j, FAILED_COLOR);
+                array.set_color(i, j, None);
             }
         }
         for node in &list {
-            array.set_color(node.x, node.y, node.color);
+            array.set_color(node.x, node.y, Some(node.color));
         }
         TargetList {
             targets: Mutex::new(VecDeque::from(list)),
@@ -40,7 +37,9 @@ impl TargetList {
             // 避免 targets 堵塞，只在查找时 lock
             {
                 let mut targets = self.targets.lock().unwrap();
-                while targets.len() > 0 && targets.front().unwrap().check(paint_board) {
+                while targets.len() > 0
+                    && paint_board.check(targets.front().unwrap().x, targets.front().unwrap().y)
+                {
                     targets.pop_front();
                 }
                 if targets.len() > 0 {
@@ -55,34 +54,37 @@ impl TargetList {
         }
     }
 
-    pub fn color(&self, x: usize, y: usize) -> usize {
+    pub fn color(&self, x: usize, y: usize) -> Option<usize> {
         self.array.color(x, y)
     }
     pub fn add_list(&self, x: usize, y: usize) {
         let mut targets = self.targets.lock().unwrap();
-        targets.push_back(NodeOpt {
-            x,
-            y,
-            color: self.array.color(x, y),
-        });
+        match self.array.color(x, y) {
+            Some(color) => {
+                targets.push_back(NodeOpt { x, y, color });
+            }
+            None => {
+                log::warn!("Wrong Node add into queue");
+            }
+        }
     }
 }
 
 pub struct ColorArray {
-    array: Mutex<Vec<Vec<usize>>>,
+    array: Mutex<Vec<Vec<Option<usize>>>>,
 }
 
 impl ColorArray {
     pub fn new(config: Arc<Config>) -> ColorArray {
         ColorArray {
-            array: Mutex::from(vec![vec![1; config.board_height]; config.board_width]),
+            array: Mutex::from(vec![vec![Some(1); config.board_height]; config.board_width]),
         }
     }
 
-    pub fn color(&self, x: usize, y: usize) -> usize {
+    pub fn color(&self, x: usize, y: usize) -> Option<usize> {
         self.array.lock().unwrap()[x][y]
     }
-    pub fn set_color(&self, x: usize, y: usize, color: usize) {
+    pub fn set_color(&self, x: usize, y: usize, color: Option<usize>) {
         self.array.lock().unwrap()[x][y] = color
     }
 }
@@ -120,10 +122,17 @@ impl PaintBoard {
         self.targets.get_target(self)
     }
     pub fn check(&self, x: usize, y: usize) -> bool {
-        let target = self.targets.color(x, y);
-        return target == FAILED_COLOR || target == self.color.color(x, y);
+        match self.targets.color(x, y) {
+            Some(color) => {
+                let current_color = self.color.color(x, y);
+                return current_color.is_some() && current_color.unwrap() == color;
+            }
+            None => {
+                return true;
+            }
+        }
     }
-    pub fn set_color(&self, x: usize, y: usize, color: usize) {
+    pub fn set_color(&self, x: usize, y: usize, color: Option<usize>) {
         self.color.set_color(x, y, color);
         if !self.check(x, y) {
             self.targets.add_list(x, y);
@@ -171,7 +180,7 @@ impl PaintBoard {
                         Ok(message) => {
                             if let Message::Text(message) = message {
                                 if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
-                                    board.set_color(update.x, update.y, update.color);
+                                    board.set_color(update.x, update.y, Some(update.color));
                                 }
                             }
                         }
@@ -195,7 +204,7 @@ impl PaintBoard {
                 let opt = board.get_update();
                 let cookie = cookie_list.get_cookie(&config);
                 if let Err(err) = opt.update(&cookie, &config) {
-                    board.set_color(opt.x, opt.y, FAILED_COLOR);
+                    board.set_color(opt.x, opt.y, None);
                     if let ScriptError::CookieOutdated = err {
                         cookie_list.remove_cookie(&cookie);
                     }
@@ -213,7 +222,7 @@ impl PaintBoard {
             Some(raw_board) => {
                 for (i, line) in raw_board.lines().enumerate() {
                     for (j, chr) in line.chars().enumerate() {
-                        self.set_color(i, j, from_32(chr));
+                        self.set_color(i, j, Some(from_32(chr)));
                     }
                 }
             }
