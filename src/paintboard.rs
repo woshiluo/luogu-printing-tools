@@ -138,11 +138,36 @@ impl PaintBoard {
             self.targets.add_list(x, y);
         }
     }
-    pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
-        use threadpool::ThreadPool;
-        let board = Arc::from(self);
-        let pool = ThreadPool::new(config.thread_num);
+    fn refresh_board(&self, config: &Config) {
+        let raw_board = get_board(config);
+        match raw_board {
+            None => {
+                log::error!("Failed to refresh board!");
+            } // just log and skip if the process failed to get board from remote server
+            Some(raw_board) => {
+                for (i, line) in raw_board.lines().enumerate() {
+                    for (j, chr) in line.chars().enumerate() {
+                        self.set_color(i, j, Some(from_32(chr)));
+                    }
+                }
+            }
+        }
+    }
 
+    pub fn start_daemon(self, cookie_list: Arc<CookieList>, config: Arc<Config>) {
+        let board = Arc::from(self);
+        PaintBoard::start_daemon_arc(board, cookie_list, config);
+    }
+}
+
+impl PaintBoard {
+    pub fn start_daemon_arc(
+        board: Arc<PaintBoard>,
+        cookie_list: Arc<CookieList>,
+        config: Arc<Config>,
+    ) {
+        use threadpool::ThreadPool;
+        let pool = ThreadPool::new(config.thread_num);
         {
             let board = board.clone();
             let config = config.clone();
@@ -211,21 +236,6 @@ impl PaintBoard {
                     log::warn!("Failed update node {}", err);
                 }
             });
-        }
-    }
-    fn refresh_board(&self, config: &Config) {
-        let raw_board = get_board(config);
-        match raw_board {
-            None => {
-                log::error!("Failed to refresh board!");
-            } // just log and skip if the process failed to get board from remote server
-            Some(raw_board) => {
-                for (i, line) in raw_board.lines().enumerate() {
-                    for (j, chr) in line.chars().enumerate() {
-                        self.set_color(i, j, Some(from_32(chr)));
-                    }
-                }
-            }
         }
     }
 }
