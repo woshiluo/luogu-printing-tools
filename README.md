@@ -70,3 +70,7 @@ Cookies 请按如下格式填写：
 在完成以上配置后，执行 `cargo run` 即可启动程序。
 
 运行时产生的全部日志信息会输出到标准错误流。
+
+## 致谢
+
+感谢 @ouuan 的 [冬日绘板模拟服务器](https://github.com/ouuan/fake-luogu-paintboard-server) 提供测试环境支持。
