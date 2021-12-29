@@ -14,7 +14,6 @@ pub struct Config {
     pub thread_num: usize,
     pub board_width: usize,
     pub board_height: usize,
-    pub node_retry_times: usize,
 }
 
 impl Config {
@@ -61,7 +60,6 @@ mod tests {
             thread_num: 8,
             board_width: 1000,
             board_height: 600,
-            node_retry_times: 5,
         };
 
         if let Err(ScriptError::UnexpectedUrl(UrlError::InvalidHTTPUrl)) = config.check() {
@@ -82,7 +80,6 @@ mod tests {
             thread_num: 8,
             board_width: 1000,
             board_height: 600,
-            node_retry_times: 5,
         };
 
         if let Err(ScriptError::UnexpectedUrl(UrlError::InvalidWSUrl)) = config.check() {

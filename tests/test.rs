@@ -1,60 +1,33 @@
-use std::{collections::VecDeque, process, sync::Arc, thread};
+use std::{process, sync::Arc, thread};
 
 use draw_script::{
-    cookie::{Cookie, CookieList, RawCookie},
-    node::NodeOpt,
+    cookie::CookieList,
+    init,
     paintboard::{ColorArray, PaintBoard, TargetList},
     Config,
 };
-use rand::Rng;
-
-fn generate_cookie_list() -> CookieList {
-    let mut list = VecDeque::new();
-    for i in 0..10 {
-        list.push_back({
-            Cookie::new(RawCookie {
-                cookie: format!("_uid={};__client_id={}", i, i),
-            })
-        });
-    }
-    CookieList::new(list)
-}
-
-fn generate_nodes() -> VecDeque<NodeOpt> {
-    let mut list = VecDeque::new();
-    for x in 0..100 {
-        for y in 0..100 {
-            list.push_back(NodeOpt {
-                x,
-                y,
-                color: rand::thread_rng().gen_range(0..32),
-            })
-        }
-    }
-    list
-}
 
 #[test]
 fn test() {
     pretty_env_logger::init();
-
-    // use local board server https://github.com/ouuan/fake-luogu-paintboard-server
-    // do not forget to set the cd to 0 before starting the server
-    let config = Arc::new(Config {
-        board_addr: "http://localhost:3000/paintBoard".to_string(),
-        websocket_addr: "ws://localhost:4000/ws".to_string(),
-        cookie_dir: "".to_string(),
-        node_file: "".to_string(),
-        wait_time: 0,
-        thread_num: 8,
-        board_width: 1000,
-        board_height: 600,
-        node_retry_times: 50,
-    });
-    let cookie_list = generate_cookie_list();
+    let config = Arc::new(
+        Config::new("config.toml".to_string()).unwrap_or_else(|err| {
+            panic!("Error parsing the config file: {}", err);
+        }),
+    );
+    let cookie_list = CookieList::new(
+        init::get_cookie_from_dir(&config.cookie_dir).unwrap_or_else(|err| {
+            panic!("Error getting cookies: {}", err);
+        }),
+    );
     let paint_board = PaintBoard {
         color: ColorArray::new(Arc::clone(&config)),
-        targets: TargetList::new(Arc::clone(&config), generate_nodes()),
+        targets: TargetList::new(
+            Arc::clone(&config),
+            init::get_node(&config.node_file).unwrap_or_else(|err| {
+                panic!("Error getting nodes: {}", err);
+            }),
+        ),
     };
     let paint_board = Arc::new(paint_board);
     let monitor = Arc::clone(&paint_board);

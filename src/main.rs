@@ -1,49 +1,10 @@
-use draw_script::cookie::{Cookie, CookieList, RawCookie};
-use draw_script::node::NodeOpt;
+use draw_script::cookie::CookieList;
+use draw_script::init;
 use draw_script::paintboard::{ColorArray, PaintBoard, TargetList};
 use draw_script::Config;
-use draw_script::ScriptError;
 
-use std::collections::VecDeque;
 use std::process;
 use std::sync::Arc;
-
-fn get_cookie_from_dir<T>(dir: &T) -> Result<VecDeque<Cookie>, ScriptError>
-where
-    T: AsRef<std::path::Path>,
-{
-    let mut queue = VecDeque::new();
-    let cookies = std::fs::read_dir(dir.as_ref())?;
-    for cookie in cookies {
-        let content = std::fs::read_to_string(cookie?.path())?;
-        let cookie: RawCookie = serde_json::from_str(&content)?;
-        queue.push_back(Cookie::new(cookie));
-    }
-    Ok(queue)
-}
-
-fn get_node<T>(file: &T) -> Result<VecDeque<NodeOpt>, ScriptError>
-where
-    T: AsRef<std::path::Path>,
-{
-    use rand::seq::SliceRandom;
-    use rand::thread_rng;
-
-    let mut rng = thread_rng();
-    let mut queue = VecDeque::new();
-    let mut dot_draw: Vec<[usize; 3]> =
-        serde_json::from_str(&std::fs::read_to_string(file.as_ref())?)?;
-    dot_draw.shuffle(&mut rng);
-
-    for node in dot_draw {
-        queue.push_back(NodeOpt {
-            x: node[0],
-            y: node[1],
-            color: node[2],
-        });
-    }
-    Ok(queue)
-}
 
 fn main() {
     pretty_env_logger::init();
@@ -53,17 +14,17 @@ fn main() {
             process::exit(1);
         }),
     );
-    let cookie_list = CookieList::new(get_cookie_from_dir(&config.cookie_dir).unwrap_or_else(
-        |err| {
+    let cookie_list = CookieList::new(
+        init::get_cookie_from_dir(&config.cookie_dir).unwrap_or_else(|err| {
             eprintln!("Error getting cookies: {}", err);
             process::exit(1);
-        },
-    ));
+        }),
+    );
     let paint_board = PaintBoard {
         color: ColorArray::new(Arc::clone(&config)),
         targets: TargetList::new(
             Arc::clone(&config),
-            get_node(&config.node_file).unwrap_or_else(|err| {
+            init::get_node(&config.node_file).unwrap_or_else(|err| {
                 eprintln!("Error getting nodes: {}", err);
                 process::exit(1);
             }),
