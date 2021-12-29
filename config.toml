@@ -1,9 +1,8 @@
-board_addr = "https://www.luogu.com.cn/paintBoard"
+board_addr = "https://www.luogu.com.cn/paintboard"
 websocket_addr = "wss://ws.luogu.com.cn/ws"
-cookie_dir = ""
-node_file = ""
+cookie_dir = "cookie_dir"
+node_file = "node.json"
 wait_time = 30
 thread_num = 5
 board_width = 1000
 board_height = 600
-node_retry_time = 50

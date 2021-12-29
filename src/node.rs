@@ -1,4 +1,3 @@
-use super::paintboard::PaintBoard;
 use super::{Config, ScriptError};
 
 use serde::{Deserialize, Serialize};
@@ -22,10 +21,6 @@ pub struct Status {
 }
 
 impl NodeOpt {
-    pub fn check(&self, paint_board: &PaintBoard) -> bool {
-        paint_board.color.color(self.x, self.y) == self.color
-    }
-
     pub fn update(&self, cookies: &str, config: &Config) -> Result<(), ScriptError> {
         let mut headers = HeaderMap::new();
         headers.insert(header::REFERER, config.board_addr.parse().unwrap());
@@ -48,6 +43,10 @@ impl NodeOpt {
         if status == 401 {
             log::warn!("{} is logouted", cookies);
             return Err(ScriptError::CookieOutdated);
+        }
+        if status != 200 {
+            log::warn!("Request failed");
+            return Err(ScriptError::FailedRequest);
         }
         Ok(())
     }

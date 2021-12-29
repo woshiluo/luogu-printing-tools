@@ -1,5 +1,6 @@
 pub mod config;
 pub mod cookie;
+pub mod init;
 pub mod node;
 pub mod paintboard;
 
@@ -11,11 +12,11 @@ pub enum ScriptError {
     FailedReadFile(std::io::Error),
     FailedParseToml(toml::de::Error),
     FailedParseJson(serde_json::Error),
-    FailedConnecntWebsocket(websocket::WebSocketError),
     FailedParseUrl(url::ParseError),
     FailedProcessRequest(reqwest::Error),
     UnexpectedUrl(UrlError),
     CookieOutdated,
+    FailedRequest,
 }
 
 pub enum UrlError {
@@ -32,12 +33,6 @@ impl From<std::io::Error> for ScriptError {
 impl From<serde_json::Error> for ScriptError {
     fn from(error: serde_json::Error) -> Self {
         ScriptError::FailedParseJson(error)
-    }
-}
-
-impl From<websocket::WebSocketError> for ScriptError {
-    fn from(error: websocket::WebSocketError) -> Self {
-        ScriptError::FailedConnecntWebsocket(error)
     }
 }
 
@@ -84,11 +79,11 @@ impl std::fmt::Display for ScriptError {
             ScriptError::FailedReadFile(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::FailedParseToml(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::FailedParseJson(err) => formatter.write_str(&format!("{}", err)),
-            ScriptError::FailedConnecntWebsocket(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::FailedParseUrl(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::FailedProcessRequest(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::UnexpectedUrl(err) => formatter.write_str(&format!("{}", err)),
             ScriptError::CookieOutdated => formatter.write_str("Cookie 已经过期"),
+            ScriptError::FailedRequest => formatter.write_str("绘制请求失败"),
         }
     }
 }
