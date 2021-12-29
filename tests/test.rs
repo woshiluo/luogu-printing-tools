@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, process, sync::Arc, thread};
 
 use draw_script::{
     cookie::{Cookie, CookieList, RawCookie},
@@ -56,5 +56,16 @@ fn test() {
         color: ColorArray::new(Arc::clone(&config)),
         targets: TargetList::new(Arc::clone(&config), generate_nodes()),
     };
-    paint_board.start_daemon(Arc::from(cookie_list), Arc::clone(&config));
+    let paint_board = Arc::new(paint_board);
+    let monitor = Arc::clone(&paint_board);
+    thread::spawn(move || {
+        PaintBoard::start_daemon_arc(paint_board, Arc::from(cookie_list), Arc::clone(&config))
+    });
+
+    loop {
+        if monitor.targets.queue_empty() {
+            eprintln!("Test complete!");
+            process::exit(0);
+        }
+    }
 }

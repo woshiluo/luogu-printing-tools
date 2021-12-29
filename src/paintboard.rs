@@ -54,6 +54,10 @@ impl TargetList {
         }
     }
 
+    pub fn queue_empty(&self) -> bool {
+        self.targets.lock().unwrap().len() == 0
+    }
+
     pub fn color(&self, x: usize, y: usize) -> Option<usize> {
         self.array.color(x, y)
     }
