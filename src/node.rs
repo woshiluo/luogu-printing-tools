@@ -14,11 +14,11 @@ pub struct NodeOpt {
     pub color: usize,
 }
 
-#[derive(Deserialize)]
-/// Luogu 返回的状态
-pub struct Status {
-    status: u32,
-}
+// #[derive(Deserialize)]
+// /// Luogu 返回的状态
+// pub struct Status {
+//     status: u32,
+// }
 
 impl NodeOpt {
     pub fn update(&self, cookies: &str, config: &Config) -> Result<(), ScriptError> {
@@ -39,21 +39,12 @@ impl NodeOpt {
             .unwrap();
         let rep_content = rep.text()?;
         log::debug!("{:?} send to server, get {}", params, rep_content);
-        let status: Result<Status, _> = serde_json::from_str(&rep_content);
-        if let Err(_err) = status {
-            log::debug!("Can't parse, maybe is ok");
+
+        if rep_content == "[]" {
             return Ok(());
         }
-        let status = status.unwrap();
-        let status = status.status;
-        if status == 401 {
-            log::warn!("{} is logouted", cookies);
-            return Err(ScriptError::CookieOutdated);
-        }
-        if status != 200 {
-            log::warn!("Request failed");
-            return Err(ScriptError::FailedRequest);
-        }
-        Ok(())
+
+        log::warn!("Request failed {}", rep_content);
+        Err(ScriptError::FailedRequest)
     }
 }

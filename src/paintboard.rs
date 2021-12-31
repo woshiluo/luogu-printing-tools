@@ -244,7 +244,7 @@ impl PaintBoard {
                     while std::time::Instant::now() - *last_update_time
                         <= std::time::Duration::from_millis(200)
                     {
-                        std::thread::sleep(std::time::Duration::from_millis(100));
+                        std::thread::sleep(std::time::Duration::from_millis(500));
                     }
                     *last_update_time = std::time::Instant::now();
                 }
