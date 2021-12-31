@@ -81,7 +81,10 @@ pub struct ColorArray {
 impl ColorArray {
     pub fn new(config: Arc<Config>) -> ColorArray {
         ColorArray {
-            array: Mutex::from(vec![vec![Some(1); config.board_height]; config.board_width]),
+            array: Mutex::from(vec![
+                vec![Some(1); config.board_height + 10];
+                config.board_width + 10
+            ]),
         }
     }
 
