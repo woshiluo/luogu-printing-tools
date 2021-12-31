@@ -27,7 +27,7 @@ impl TargetList {
             array.set_color(node.x, node.y, Some(node.color));
         }
         TargetList {
-            targets: Mutex::new(VecDeque::from(list)),
+            targets: Mutex::new(list),
             array,
         }
     }
@@ -132,11 +132,9 @@ impl PaintBoard {
         match self.targets.color(x, y) {
             Some(color) => {
                 let current_color = self.color.color(x, y);
-                return current_color.is_some() && current_color.unwrap() == color;
+                current_color.is_some() && current_color.unwrap() == color
             }
-            None => {
-                return true;
-            }
+            None => true,
         }
     }
     pub fn set_color(&self, x: usize, y: usize, color: Option<usize>) {
@@ -192,41 +190,47 @@ impl PaintBoard {
             pool.execute(move || {
                 log::info!("Start websocket update daemon");
                 use tungstenite::{client, protocol::Message};
-                // TODO: What to do if init connect failed?
-                let mut client = client::connect(&config.websocket_addr).unwrap().0;
-                client
-                    .write_message(Message::text(
-                        "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
-                    ))
-                    .unwrap();
-                log::info!("Websocket conn est, wait for messages");
-                let mut first_req = false;
                 loop {
-                    let message = client.read_message();
-                    if first_req == false {
-                        first_req = true;
-                        continue;
-                    }
-                    log::info!("Update recv: {:?}", message);
-                    match message {
-                        Ok(message) => {
-                            if let Message::Text(message) = message {
-                                if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
-                                    board.set_color(update.x, update.y, Some(update.color));
+                    // TODO: What to do if init connect failed?
+                    let mut client = client::connect(&config.websocket_addr).unwrap().0;
+                    client
+                        .write_message(Message::text(
+                            "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
+                        ))
+                        .unwrap();
+                    log::info!("Websocket conn est, wait for messages");
+                    let mut first_req = false;
+                    loop {
+                        let message = client.read_message();
+                        if !first_req {
+                            first_req = true;
+                            continue;
+                        }
+                        log::trace!("Update recv: {:?}", message);
+                        match message {
+                            Ok(message) => {
+                                if let Message::Text(message) = message {
+                                    if let Ok(update) = serde_json::from_str::<NodeOpt>(&message) {
+                                        board.set_color(update.x, update.y, Some(update.color));
+                                    }
                                 }
                             }
-                        }
-                        Err(err) => {
-                            log::error!("Failed Recv websocket: {:?}", err);
+                            Err(err) => {
+                                log::error!("Failed Recv websocket: {:?}", err);
+                                break;
+                            }
                         }
                     }
+                    log::info!("Websocket error, try reconnect...");
                 }
             });
         }
+        let last_update_time = Arc::new(Mutex::new(std::time::Instant::now()));
         loop {
             let cookie_list = cookie_list.clone();
             let board = board.clone();
             let config = config.clone();
+            let last_update_time = last_update_time.clone();
             while pool.max_count() <= pool.active_count() {
                 // TODO: Set with config
                 std::thread::sleep(std::time::Duration::from_millis(500));
@@ -235,6 +239,16 @@ impl PaintBoard {
                 use crate::ScriptError;
                 let opt = board.get_update();
                 let cookie = cookie_list.get_cookie(&config);
+                {
+                    let mut last_update_time = last_update_time.lock().unwrap();
+                    while std::time::Instant::now() - *last_update_time
+                        <= std::time::Duration::from_millis(200)
+                    {
+                        std::thread::sleep(std::time::Duration::from_millis(100));
+                    }
+                    *last_update_time = std::time::Instant::now();
+                }
+
                 if let Err(err) = opt.update(&cookie, &config) {
                     board.set_color(opt.x, opt.y, None);
                     if let ScriptError::CookieOutdated = err {

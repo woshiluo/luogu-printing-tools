@@ -31,7 +31,7 @@ where
     let mut queue = VecDeque::new();
     let mut dot_draw: Vec<[usize; 3]> =
         serde_json::from_str(&std::fs::read_to_string(file.as_ref())?)?;
-    // dot_draw.shuffle(&mut rng);
+    dot_draw.shuffle(&mut rng);
 
     for node in dot_draw {
         queue.push_back(NodeOpt {
