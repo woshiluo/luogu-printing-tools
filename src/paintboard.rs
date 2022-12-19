@@ -192,12 +192,15 @@ impl PaintBoard {
                 use tungstenite::{client, protocol::Message};
                 loop {
                     // TODO: What to do if init connect failed?
-                    let mut client = client::connect(&config.websocket_addr).unwrap().0;
-                    client
-                        .write_message(Message::text(
-                            "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
-                        ))
-                        .unwrap();
+                    let mut client = match client::connect(&config.websocket_addr) {
+                        Ok(data) => data.0,
+                        Err(_) => break,
+                    };
+                    if let Err(_) = client.write_message(Message::text(
+                        "{\"type\":\"join_channel\",\"channel\":\"paintboard\"}",
+                    )) {
+                        break;
+                    };
                     log::info!("Websocket conn est, wait for messages");
                     let mut first_req = false;
                     loop {
@@ -242,9 +245,9 @@ impl PaintBoard {
                 {
                     let mut last_update_time = last_update_time.lock().unwrap();
                     while std::time::Instant::now() - *last_update_time
-                        <= std::time::Duration::from_millis(200)
+                        <= std::time::Duration::from_millis(500)
                     {
-                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        std::thread::sleep(std::time::Duration::from_millis(300));
                     }
                     *last_update_time = std::time::Instant::now();
                 }
@@ -254,7 +257,8 @@ impl PaintBoard {
                     if let ScriptError::CookieOutdated = err {
                         cookie_list.remove_cookie(&cookie);
                     }
-                    log::warn!("Failed update node {}", err);
+                } else {
+                    log::warn!("Update success");
                 }
             });
         }
